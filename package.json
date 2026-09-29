@@ -1,0 +1,16 @@
+{
+  "name": "central-chamados",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "sst dev --stage lab",
+    "deploy": "sst deploy --stage lab",
+    "remove": "sst remove --stage lab"
+  },
+  "devDependencies": {
+    "sst": "^4.17.1",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0"
+  }
+}
