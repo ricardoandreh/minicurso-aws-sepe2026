@@ -42,21 +42,21 @@ uv sync --all-packages
 ./layers/strands-openai/build.sh
 ```
 
-## Parte 1 — hands-on manual
+## Parte 1 — hands-on manual (quatro serviços, só navegador)
 
-Sem código de infra: cada recurso é criado direto no console ou via AWS CLI —
-bucket S3 com website hosting pro frontend, tabela DynamoDB, API Gateway com
-um Lambda Authorizer validando `x-api-key`, fila SQS, SNS Topic, parâmetros
-no Parameter Store, e a Lambda do agente (Strands + Groq) disparada pela
-fila. Os handlers em `functions/src/functions/*.py` já estão na versão
-"manual" (leem `os.environ` e `ssm.get_parameter`) usada nessa etapa — é só
-fazer upload/colar o código de cada Lambda.
+Sem código de infra e sem nada instalado na máquina: a turma cria quatro
+recursos direto no console — bucket S3 com website hosting servindo o frontend
+já pronto, tabela DynamoDB, uma Lambda Python simples que grava um chamado, e
+uma fila SQS ligada nessa Lambda como trigger. O resultado é um pedaço real e
+funcionando (**SQS → Lambda → DynamoDB**) mais o site no ar.
 
-O `layers/strands-openai/build/python/` gerado pelo `build.sh` é usado nas
-duas partes: no `sst.config.ts` (Parte 2) via `$asset()`, que zipa esse
-diretório na hora do deploy. Para o upload manual pelo console (Parte 1),
-zipe a pasta você mesmo antes (`cd layers/strands-openai/build && zip -r
-layer.zip python`) — o Lambda exige a pasta `python/` na raiz do zip.
+O site carrega mas não lista nada, porque ainda não existe API — é essa falta
+que a Parte 2 preenche. API Gateway, Lambda Authorizer, o agente com Strands,
+SNS e o Discord **não** são hands-on: aparecem na Parte 2, por código.
+
+A Lambda da Parte 1 usa um handler próprio e curto (está no `roteiro.md`), não
+os handlers de `functions/src/functions/`, que já são a versão final com
+`from sst import Resource`.
 
 ## Parte 2 — deploy com SST Ion
 
