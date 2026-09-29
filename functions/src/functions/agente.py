@@ -35,7 +35,7 @@ def _bucket_nome():
 def _analisar(chamado):
     model = OpenAIModel(
         client_args={"api_key": _groq_api_key(), "base_url": GROQ_BASE_URL},
-        model_id="openai/gpt-oss-120b",
+        model_id="openai/gpt-oss-20b",
         params={"max_tokens": 300, "temperature": 0.3},
     )
     agente = Agent(model=model, system_prompt=SYSTEM_PROMPT)
