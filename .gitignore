@@ -16,3 +16,7 @@ layers/*/*.zip
 # frontend build
 packages/frontend/dist/
 packages/frontend/node_modules/
+
+# tipos gerados pelo SST (recriados a cada `sst deploy`/`sst dev`)
+sst.pyi
+sst-env.d.ts
