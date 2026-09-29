@@ -1,7 +1,7 @@
-## AWS na prática: construindo uma aplicação web serverless com SST Ion (3h)
+## AWS na prática: construindo uma aplicação web serverless com SST v4 (3h)
 
 **Aplicação:** Central de Chamados cloud-native
-**Stack:** S3 · API Gateway · Lambda Python · DynamoDB · SQS · SNS · Parameter Store · `sst.Secret` · Strands Agents · Groq · SST Ion · AWS Learner Labs
+**Stack:** S3 · API Gateway · Lambda Python · DynamoDB · SQS · SNS · Parameter Store · `sst.Secret` · Strands Agents · Groq · SST v4 · AWS Learner Labs
 
 > **Formato.** A Parte 1 é hands-on de console em **quatro serviços** — S3,
 > DynamoDB, Lambda e SQS. A turma faz, e só precisa do navegador: nenhuma
@@ -28,7 +28,7 @@
 | SQS | 1:25–1:45 | 20 min | **turma** |
 | **Intervalo + Setup 2 (ambiente local)** | 1:45–1:55 | 10 min | **turma** |
 | O problema do manual | 1:55–2:05 | 10 min | instrutor |
-| SST Ion — 5 passos por branch | 2:05–2:45 | 40 min | instrutor (+ 2 deploys da turma) |
+| SST — 5 passos por branch | 2:05–2:45 | 40 min | instrutor (+ 2 deploys da turma) |
 | Demo final | 2:45–2:53 | 8 min | instrutor |
 | Fechamento + sorteio | 2:53–3:00 | 7 min | instrutor |
 
@@ -405,13 +405,13 @@ consistência — não volume de trabalho.
 
 ---
 
-#### 2:05–2:45 — SST Ion, cinco passos por branch
+#### 2:05–2:45 — SST, cinco passos por branch
 
 **O que é IaC:**
 > *"Infrastructure as Code. Infra declarada em código, versionada no Git,
 > reproduzível em qualquer conta. Se deletar tudo e rodar de novo, fica idêntico."*
 
-**O que é SST Ion:**
+**O que é o SST:**
 > *"IaC moderno em TypeScript. Abstrai o Pulumi por baixo — você não precisa
 > saber que o Pulumi existe. O `sst deploy` declara o que você quer e garante
 > que está no estado correto."*
@@ -796,7 +796,7 @@ Parameter Store / sst.Secret → segredo fora do código
 Lambda Layer     → dependências compartilhadas
 Strands + Groq   → agente de AI dentro da arquitetura
 CloudWatch       → observabilidade automática
-SST Ion          → IaC, do manual ao cloud-native
+SST v4           → IaC, do manual ao cloud-native
 ```
 
 **Para quem quiser ir além — o próximo passo está numa branch:**
@@ -858,7 +858,7 @@ conta própria isso é a diferença entre centavos e uma surpresa na fatura.
   destino antes de começar a jornada.
 - **Ritmo fixo por serviço:** o que é → hands-on → como se encaixa.
 - **O bloco "problema do manual" é curto e obrigatório.** Sem sentir a dor, o
-  SST Ion não tem impacto.
+  SST não tem impacto.
 - **Na Parte 1 a turma faz; na Parte 2 a turma acompanha.** Não tentar as duas
   coisas ao mesmo tempo, e dizer isso explicitamente no começo para ninguém se
   sentir deixado de fora.

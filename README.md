@@ -1,9 +1,9 @@
-# Central de Chamados — minicurso AWS + SST Ion
+# Central de Chamados — minicurso AWS + SST v4
 
 Central de Chamados serverless (S3 · CloudFront · API Gateway · Lambda Python ·
 DynamoDB · SQS · SNS · Parameter Store · Strands Agents · Groq), construída em
 duas etapas: primeiro manualmente pelo console/CLI da AWS (Parte 1), depois
-recriada como infraestrutura como código com SST Ion (Parte 2).
+recriada como infraestrutura como código com SST v4 (Parte 2).
 
 ```
 .
@@ -58,7 +58,7 @@ A Lambda da Parte 1 usa um handler próprio e curto (está no `roteiro.md`), nã
 os handlers de `functions/src/functions/`, que já são a versão final com
 `from sst import Resource`.
 
-## Parte 2 — deploy com SST Ion
+## Parte 2 — deploy com SST v4
 
 ```bash
 # segredos — uma vez por stage, nunca commitados
@@ -138,6 +138,6 @@ npm run dev
 - **HTTP API não tem API Key/Usage Plan** (isso é exclusivo da REST API v1) —
   por isso a autenticação é um Lambda Authorizer (`authorizer.py`) validando o
   header `x-api-key` contra o secret `ApiKey`.
-- **Python no SST Ion é community-supported** e exige um workspace `uv` com
+- **Python no SST é community-supported** e exige um workspace `uv` com
   `pyproject.toml` por pacote — já configurado em `pyproject.toml` (raiz) e
   `functions/pyproject.toml`.
