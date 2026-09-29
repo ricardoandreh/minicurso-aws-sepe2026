@@ -54,6 +54,9 @@ também o setup local da Parte 2.
       não cabe no tempo.
 - [ ] Gist de pré-requisitos enviado antes do evento (Node 20+, uv, AWS CLI).
 - [ ] **Deploy gravado como fallback**, para o caso de a AWS travar.
+- [ ] Os três `sst secret set` (`ApiKey`, `GroqApiKey`, `DiscordWebhook`) rodados
+      na sua própria conta. Eles são por app+stage e não acompanham a branch —
+      setar uma vez basta para a Parte 2 inteira.
 - [ ] `npx sst remove --stage lab` rodado no ambiente de teste, para a aula
       começar do zero.
 
@@ -329,6 +332,11 @@ export AWS_SECRET_ACCESS_KEY=...
 export AWS_SESSION_TOKEN=...
 
 aws sts get-caller-identity   # tem que responder com um ARN
+
+# os três segredos, de uma vez só — ver a nota abaixo
+npx sst secret set ApiKey "$(openssl rand -hex 24)" --stage lab
+npx sst secret set GroqApiKey "gsk_..." --stage lab
+npx sst secret set DiscordWebhook "https://discord.com/api/webhooks/..." --stage lab
 ```
 
 > *"Quem conseguir, vai fazer deploy da própria infraestrutura junto comigo. Quem
@@ -336,6 +344,27 @@ aws sts get-caller-identity   # tem que responder com um ARN
 
 O sucesso da aula não pode depender de 30 ambientes locais. Mas quem tiver
 ambiente vive o argumento central do minicurso em vez de ouvi-lo.
+
+#### Por que os segredos são setados aqui, e uma vez só
+
+**Segredo no SST é indexado por app + stage, não por branch.** A chave é
+`central-chamados/lab/<nome>`, guardada no bucket de estado do lado da AWS — o
+Git não participa. Setados uma vez no intervalo, eles sobrevivem a todos os
+`git checkout` da Parte 2 sem ninguém tocar em nada.
+
+Setar os três de uma vez, aqui, em vez de espalhar pelos passos:
+
+- **Não precisa estar deployado para setar.** `sst secret set` funciona num stage
+  que nunca recebeu um `sst deploy` — ele resolve o bootstrap sozinho.
+- **Um segredo declarado no código e não setado quebra o deploy.** Cada passo
+  declara um novo (`ApiKey` no passo 3, `GroqApiKey` no 4, `DiscordWebhook` no 5).
+  Espalhar os comandos pelos passos significa três oportunidades de alguém ficar
+  para trás no meio da Parte 2, quando não há tempo para resgatar ninguém.
+- O intervalo é o único momento da aula com folga para resolver problema
+  individual.
+
+Se alguém esquecer o valor depois: `npx sst secret list --stage lab`. **Não
+existe `sst secret get`** — só `set`, `remove`, `load` e `list`.
 
 ---
 
@@ -426,7 +455,6 @@ ambiente isolado, `return` como output. E que `aws` e `sst` são globais — o
 
 **A turma roda:**
 ```bash
-npx sst secret set ApiKey "$(openssl rand -hex 24)" --stage lab   # usado no passo 3
 npx sst deploy --stage lab
 ```
 
@@ -438,6 +466,13 @@ console e vê **o próprio bucket**.
 > Isso é o que 'reproduzível' significa na prática."*
 
 Mostrar também `npx sst remove --stage lab` — e não rodar.
+
+> **Cuidado ao demonstrar:** o `sst deploy` reconcilia nos dois sentidos. O que
+> está no código, ele cria; o que **não** está, ele destrói. O caminho da aula é
+> só para frente (passo 1 → `main`), então não há risco. Mas um
+> `git checkout passo-2 && sst deploy` depois de ter subido a `main` apaga API,
+> agente e Discord na frente da turma. Se for de propósito, é uma demonstração
+> ótima de "o código é a fonte da verdade". Se for acidente, é constrangedor.
 
 ---
 
@@ -521,7 +556,8 @@ api.route("GET /chamados", chamadosApi.arn, auth);
 
 Três coisas a dizer:
 
-**1. Segredo nunca no código.** O valor foi setado uma vez por CLI, no passo 1.
+**1. Segredo nunca no código.** O valor foi setado por CLI no intervalo, e não
+precisa ser setado de novo a cada branch — ele é do stage, não do Git.
 > *"`sst.Secret` guarda o valor fora do repositório, por stage. É o papel que o
 > Parameter Store cumpre na AWS — mesma função, mecanismo diferente por baixo: o
 > SST guarda num bucket dele, não no Parameter Store. Se esquecerem o valor:
@@ -680,10 +716,8 @@ new aws.s3.BucketWebsiteConfiguration("FrontendWebsite", {
 > aplicação têm ciclos de vida diferentes — num pipeline de CI/CD real seriam dois
 > jobs distintos."*
 
-**A turma roda:**
+**A turma roda:** (os segredos já foram setados no intervalo)
 ```bash
-npx sst secret set GroqApiKey "gsk_..." --stage lab
-npx sst secret set DiscordWebhook "https://discord.com/api/webhooks/..." --stage lab
 npx sst deploy --stage lab
 ./scripts/deploy-frontend.sh
 ```
@@ -846,6 +880,7 @@ conta própria isso é a diferença entre centavos e uma surpresa na fatura.
 |---|---|
 | A AWS/console travar | Seguir com o deploy gravado; a narrativa continua. |
 | Credenciais do Lab expirarem | Reabrir o Lab, re-exportar, `npx sst unlock --stage lab` antes de deployar de novo (o deploy morto deixa lock). |
+| `sst deploy` reclamar de secret não setado | O participante pulou o setup do intervalo: rodar o `sst secret set` que falta e deployar de novo. Não precisa refazer nada. |
 | Groq fora do ar ou modelo retirado | Conferir `GET /v1/models`; se necessário, mostrar a análise de um chamado já processado antes da aula. |
 | Discord bloquear o webhook | Mostrar o relatório no S3 e o item no DynamoDB — o fluxo é o mesmo, sem a notificação. |
 | Ninguém conseguir ambiente local | A Parte 2 vira 100% demonstração; nada do conteúdo se perde. |
