@@ -27,6 +27,41 @@ Antes de subir, editar uma linha:
 const API_URL = "https://SEU-API-ID.execute-api.us-east-1.amazonaws.com";
 ```
 
+## As quatro Lambdas
+
+Código em `lambdas/`. Runtime Python 3.13, um arquivo por função.
+
+| Função | Gatilho | Variáveis de ambiente | Permissão na role |
+|---|---|---|---|
+| `create.py` | `POST /shorten` | `TABELA_NOME` | escrever no DynamoDB |
+| `redirect.py` | `GET /{shortId}` | `TABELA_NOME`, `FILA_URL` | ler no DynamoDB, enviar no SQS |
+| `contador.py` | fila SQS | `TABELA_NOME` | escrever no DynamoDB |
+| `stats.py` | `GET /{shortId}/stats` | `TABELA_NOME` | ler no DynamoDB |
+
+Todas declaram `def lambda_handler(...)`, que é exatamente o que o console
+espera por padrão (`lambda_function.lambda_handler`) — assim não há passo de
+trocar o Handler nas configurações, que é onde o primeiro teste costuma falhar.
+
+Nada de nome de tabela ou URL de fila embutido no código: tudo por variável de
+ambiente. É mais trabalho no console de propósito — é esse trabalho que o
+`link()` do SST faz desaparecer na segunda metade da aula.
+
+### Decisões que valem ser explicadas em sala
+
+- **302, não 301, no redirect.** O 301 é permanente e o navegador guarda em
+  cache: o segundo clique no mesmo link não voltaria à API e o contador pararia
+  de subir bem na hora de demonstrar que ele sobe.
+- **`ADD clicks :um`** é o contador atômico do DynamoDB. Ler, somar em Python e
+  gravar teria race condition, e `SET clicks = clicks + :um` quebra se o
+  atributo ainda não existir.
+- **Escrita condicional** (`attribute_not_exists(shortId)`) no `create` resolve
+  colisão de ID sem precisar ler antes de escrever.
+- **`int()` no `stats`.** Número no DynamoDB volta como `Decimal`, que o
+  `json.dumps` não serializa — sem isso a rota devolve 500.
+- **Nenhuma Lambda devolve cabeçalho de CORS.** Quem responde o preflight
+  `OPTIONS` é o API Gateway, pela configuração de CORS da HTTP API. Cabeçalho
+  posto na resposta da Lambda não resolve, porque o preflight nem chega nela.
+
 ## Pontos em que a aula costuma travar
 
 - **CORS.** O site é servido de `http://...s3-website...` e chama
