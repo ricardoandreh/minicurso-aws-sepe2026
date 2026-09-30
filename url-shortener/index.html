@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encurtador de URL</title>
+<style>
+/* Tokens do Microsoft Fluent 2 (nomes conforme @fluentui/react-components) */
+:root {
+  color-scheme: light dark;
+  --colorNeutralBackground1: #ffffff;
+  --colorNeutralBackground3: #f5f5f5;
+  --colorSubtleBackgroundHover: #f5f5f5;
+  --colorNeutralForeground1: #242424;
+  --colorNeutralForeground2: #424242;
+  --colorNeutralForeground3: #616161;
+  --colorNeutralForeground4: #707070;
+  --colorNeutralForegroundDisabled: #bdbdbd;
+  --colorNeutralBackgroundDisabled: #f0f0f0;
+  --colorNeutralStroke1: #d1d1d1;
+  --colorNeutralStroke2: #e0e0e0;
+  --colorNeutralStrokeAccessible: #616161;
+  --colorBrandBackground: #0f6cbd;
+  --colorBrandBackgroundHover: #115ea3;
+  --colorBrandBackgroundPressed: #0c3b5e;
+  --colorBrandBackground2: #ebf3fc;
+  --colorBrandForeground1: #0f6cbd;
+  --colorBrandStroke1: #0f6cbd;
+  --colorPaletteRedForeground1: #b10e1c;
+  --colorPaletteRedBackground1: #fdf3f4;
+  --colorPaletteGreenForeground1: #0e700e;
+  --colorStrokeFocus2: #000000;
+  --shadow2: 0 1px 2px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --borderRadiusMedium: 4px;
+  --borderRadiusXLarge: 8px;
+  --durationFaster: 100ms;
+  --durationNormal: 200ms;
+  --curveDecelerateMid: cubic-bezier(.1,.9,.2,1);
+  --fontFamilyBase: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI",
+    -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --fontFamilyMonospace: "Cascadia Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --colorNeutralBackground1: #292929;
+    --colorNeutralBackground3: #141414;
+    --colorSubtleBackgroundHover: #383838;
+    --colorNeutralForeground1: #ffffff;
+    --colorNeutralForeground2: #d6d6d6;
+    --colorNeutralForeground3: #adadad;
+    --colorNeutralForeground4: #999999;
+    --colorNeutralForegroundDisabled: #5c5c5c;
+    --colorNeutralBackgroundDisabled: #1f1f1f;
+    --colorNeutralStroke1: #666666;
+    --colorNeutralStroke2: #525252;
+    --colorNeutralStrokeAccessible: #adadad;
+    --colorBrandBackground: #115ea3;
+    --colorBrandBackgroundHover: #0f6cbd;
+    --colorBrandBackgroundPressed: #0c3b5e;
+    --colorBrandBackground2: #0c2a47;
+    --colorBrandForeground1: #479ef5;
+    --colorBrandStroke1: #479ef5;
+    --colorPaletteRedForeground1: #dc626d;
+    --colorPaletteRedBackground1: #3b1113;
+    --colorPaletteGreenForeground1: #54b054;
+    --colorStrokeFocus2: #ffffff;
+    --shadow2: 0 1px 2px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.24);
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--colorNeutralBackground3);
+  color: var(--colorNeutralForeground1);
+  font-family: var(--fontFamilyBase);
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+:where(button, input):focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: 1px;
+}
+
+.card {
+  width: 100%;
+  max-width: 460px;
+  padding: 24px;
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusXLarge);
+  box-shadow: var(--shadow2);
+}
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.header-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: var(--borderRadiusXLarge);
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
+}
+h1 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; }
+.sub { margin: 0; font-size: 12px; line-height: 16px; color: var(--colorNeutralForeground3); }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.label { font-size: 14px; font-weight: 600; }
+
+/* Input do Fluent 2: borda inferior mais escura em repouso, e no foco um
+   traço de 2px na cor da marca que cresce a partir do centro. */
+.control {
+  position: relative; display: flex; align-items: center;
+  padding: 0 8px; height: 32px;
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-bottom-color: var(--colorNeutralStrokeAccessible);
+  border-radius: var(--borderRadiusMedium);
+}
+.control::after {
+  content: ""; position: absolute; left: -1px; right: -1px; bottom: -1px;
+  height: 2px; background: var(--colorBrandStroke1);
+  border-bottom-left-radius: var(--borderRadiusMedium);
+  border-bottom-right-radius: var(--borderRadiusMedium);
+  transform: scaleX(0);
+  transition: transform var(--durationNormal) var(--curveDecelerateMid);
+}
+.control:focus-within::after { transform: scaleX(1); }
+.control input {
+  flex: 1; min-width: 0; padding: 0;
+  font: inherit; color: inherit; background: none; border: none; outline: none;
+}
+.control input::placeholder { color: var(--colorNeutralForeground4); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 32px; padding: 0 12px;
+  font: inherit; font-weight: 600;
+  border: 1px solid transparent; border-radius: var(--borderRadiusMedium);
+  cursor: pointer;
+  transition: background-color var(--durationFaster) ease;
+}
+.btn:disabled {
+  cursor: not-allowed;
+  background: var(--colorNeutralBackgroundDisabled);
+  color: var(--colorNeutralForegroundDisabled);
+}
+.btn-primary {
+  width: 100%; margin-top: 16px;
+  background: var(--colorBrandBackground); color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: var(--colorBrandBackgroundHover); }
+.btn-primary:active:not(:disabled) { background: var(--colorBrandBackgroundPressed); }
+.btn-subtle {
+  background: none; color: var(--colorNeutralForeground2);
+  border-color: var(--colorNeutralStroke1);
+}
+.btn-subtle:hover:not(:disabled) { background: var(--colorSubtleBackgroundHover); }
+
+.msg {
+  margin-top: 16px; padding: 8px 12px;
+  border: 1px solid var(--colorPaletteRedForeground1);
+  background: var(--colorPaletteRedBackground1);
+  border-radius: var(--borderRadiusMedium);
+}
+.msg[hidden] { display: none; }
+.msg-dica { margin: 4px 0 0; font-size: 12px; color: var(--colorNeutralForeground2); }
+
+.resultado { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--colorNeutralStroke2); }
+.resultado[hidden] { display: none; }
+.linha { display: flex; align-items: center; gap: 8px; }
+.linha + .linha { margin-top: 16px; }
+.valor {
+  flex: 1; min-width: 0; padding: 6px 8px;
+  font-family: var(--fontFamilyMonospace); font-size: 13px;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cliques {
+  flex: 1; font-size: 24px; line-height: 32px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ok { color: var(--colorPaletteGreenForeground1); }
+</style>
+</head>
+<body>
+<main class="card">
+  <header class="header">
+    <div class="header-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M10 14a4 4 0 0 0 5.66 0l3-3A4 4 0 0 0 13 5.34l-1.5 1.5M14 10a4 4 0 0 0-5.66 0l-3 3A4 4 0 0 0 11 18.66l1.5-1.5"
+              stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Encurtador de URL</h1>
+      <p class="sub">S3 · API Gateway · Lambda · DynamoDB · SQS</p>
+    </div>
+  </header>
+
+  <form id="form">
+    <div class="field">
+      <label class="label" for="url">URL longa</label>
+      <div class="control">
+        <input type="url" id="url" required spellcheck="false"
+               placeholder="https://exemplo.com/uma-pagina-bem-longa">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="btn-encurtar">Encurtar</button>
+  </form>
+
+  <div class="msg" id="erro" role="alert" hidden>
+    <span id="erro-texto"></span>
+    <p class="msg-dica" id="erro-dica" hidden></p>
+  </div>
+
+  <section class="resultado" id="resultado" hidden>
+    <div class="field">
+      <span class="label">Link curto</span>
+      <div class="linha">
+        <span class="valor" id="curto"></span>
+        <button type="button" class="btn btn-subtle" id="btn-copiar">Copiar</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:16px">
+      <span class="label">Cliques</span>
+      <div class="linha">
+        <span class="cliques" id="cliques">0</span>
+        <button type="button" class="btn btn-subtle" id="btn-atualizar">Atualizar</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// Cole aqui a Invoke URL da sua HTTP API, sem barra no final.
+const API_URL = "https://SEU-API-ID.execute-api.us-east-1.amazonaws.com";
+// ─────────────────────────────────────────────────────────────
+
+const $ = (id) => document.getElementById(id);
+let shortIdAtual = null;
+
+function erro(texto, dica) {
+  $("erro-texto").textContent = texto;
+  $("erro-dica").textContent = dica || "";
+  $("erro-dica").hidden = !dica;
+  $("erro").hidden = false;
+}
+const limparErro = () => ($("erro").hidden = true);
+
+// `fetch` falha com TypeError tanto por rede quanto por CORS bloqueado —
+// e CORS é de longe o motivo mais provável aqui.
+function mensagemDeFalha(e) {
+  if (e instanceof TypeError) {
+    return ["Não foi possível falar com a API.",
+            "Confira o API_URL no index.html e se o CORS está configurado na HTTP API."];
+  }
+  return [e.message, null];
+}
+
+$("form").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  const botao = $("btn-encurtar");
+  limparErro();
+  botao.disabled = true;
+  botao.textContent = "Encurtando...";
+
+  try {
+    const resposta = await fetch(`${API_URL}/shorten`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: $("url").value.trim() }),
+    });
+    if (!resposta.ok) throw new Error(`A API respondeu HTTP ${resposta.status}`);
+
+    const dados = await resposta.json();
+    shortIdAtual = dados.shortId;
+    $("curto").textContent = dados.shortUrl;
+    $("curto").title = dados.shortUrl;
+    $("cliques").textContent = "0";
+    $("resultado").hidden = false;
+  } catch (e) {
+    erro(...mensagemDeFalha(e));
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Encurtar";
+  }
+});
+
+$("btn-atualizar").addEventListener("click", async () => {
+  if (!shortIdAtual) return;
+  const botao = $("btn-atualizar");
+  limparErro();
+  botao.disabled = true;
+  try {
+    const resposta = await fetch(`${API_URL}/${shortIdAtual}/stats`);
+    if (!resposta.ok) throw new Error(`A API respondeu HTTP ${resposta.status}`);
+    const dados = await resposta.json();
+    $("cliques").textContent = dados.clicks ?? 0;
+  } catch (e) {
+    erro(...mensagemDeFalha(e));
+  } finally {
+    botao.disabled = false;
+  }
+});
+
+$("btn-copiar").addEventListener("click", async () => {
+  const botao = $("btn-copiar");
+  const texto = $("curto").textContent;
+  try {
+    // navigator.clipboard só existe em origem segura, e o site hospedado no
+    // S3 website hosting é HTTP puro — daí o fallback.
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(texto);
+    } else {
+      const campo = document.createElement("textarea");
+      campo.value = texto;
+      campo.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(campo);
+      campo.select();
+      document.execCommand("copy");
+      campo.remove();
+    }
+    botao.textContent = "Copiado";
+    botao.classList.add("ok");
+    setTimeout(() => {
+      botao.textContent = "Copiar";
+      botao.classList.remove("ok");
+    }, 1500);
+  } catch {
+    erro("Não foi possível copiar.", "Selecione o texto e copie manualmente.");
+  }
+});
+</script>
+</body>
+</html>
