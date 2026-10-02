@@ -81,9 +81,11 @@ body {
   margin: 0;
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  /* Ancorado no topo em vez de centralizado: com o card alto, centralizar
+     empurrava tudo para o meio e sobrava vazio em cima e embaixo. */
+  align-items: flex-start;
   justify-content: center;
-  padding: 24px 16px;
+  padding: 40px 16px;
   background: var(--colorNeutralBackground3);
   color: var(--colorNeutralForeground1);
   font-family: var(--fontFamilyBase);
@@ -208,7 +210,10 @@ h1 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; }
 ul {
   list-style: none; margin: 0; padding: 0;
   display: flex; flex-direction: column; gap: 8px;
-  height: 268px; overflow-y: auto;
+  /* A altura varia com a janela, nunca com o conteúdo: é isso que mantém o
+     card parado enquanto você cria links. */
+  height: clamp(280px, 52vh, 460px);
+  overflow-y: auto;
   scrollbar-width: thin;
 }
 
