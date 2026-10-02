@@ -68,9 +68,12 @@ arquivo é um espelho literal das rotas da API.
   `OPTIONS` é o API Gateway, pela configuração de CORS da HTTP API. Cabeçalho
   posto na resposta da Lambda não resolve, porque o preflight nem chega nela.
 
+> Os passos completos, com explicação de cada serviço, estão na
+> [série de artigos](../blog/README.md). Aqui fica só o resumo das peças.
+
 ## Bônus: parabéns aos 10 cliques
 
-Cadeia opcional, **não coberta pelos scripts** — montada à mão no console:
+Cadeia opcional, montada à mão no console:
 
 ```
 contador ──update_item──▶ tabela

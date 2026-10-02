@@ -26,6 +26,18 @@ Browser
 
 ## Os artigos
 
+### Preparação
+
+| # | Artigo | Ao final você tem |
+|---|---|---|
+| 0 | [Preparando a máquina para o AWS Learner Lab](00-setup-learner-lab.md) | CLI, Node e credenciais prontos |
+
+Independente do resto da série, e reaproveitável em qualquer minicurso que use o
+Learner Lab. **Só é necessário a partir do artigo 8**: os artigos 1 a 7 são
+todos no console e pedem apenas o navegador.
+
+### Parte 1 — no console, clique a clique
+
 | # | Artigo | Serviço | Ao final você tem |
 |---|---|---|---|
 | 1 | [O site sem servidor](01-s3.md) | S3 | uma URL pública servindo seu HTML |
@@ -36,8 +48,14 @@ Browser
 | 6 | [Reagindo a mudanças no banco](06-streams-pipes.md) | DynamoDB Streams · EventBridge Pipes | detecção do marco de 10 cliques, sem código |
 | 7 | [Avisando o mundo](07-sns-parameter-store.md) | SNS · Parameter Store | parabéns chegando no Discord |
 
-Os artigos 1 a 5 constroem o encurtador. Os 6 e 7 são a parte opcional: quando
-um link bate 10 cliques, um parabéns é postado num canal do Discord.
+### Parte 2 — a mesma aplicação, agora em código
+
+*(em escrita)*
+
+A segunda metade reconstrói **exatamente a mesma aplicação** com SST, e é essa
+repetição que dá a ela todo o sentido: você já sabe quantos cliques cada peça
+custou. O fecho é o `link()`, que faz desaparecer a variável de ambiente e a
+policy que você anexou à mão no artigo 3.
 
 ## Estrutura de cada artigo
 
