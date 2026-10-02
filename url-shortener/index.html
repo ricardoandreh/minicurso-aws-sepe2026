@@ -202,46 +202,97 @@ h1 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; }
   border-top: 1px solid var(--colorNeutralStroke2);
 }
 .lista-header h2 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; }
-ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+/* Altura fixa: a lista rola por dentro em vez de empurrar o card para baixo.
+   Assim o cartão não muda de tamanho conforme você cria links, nem pula entre
+   o estado de carregando e o de carregado. */
+ul {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+  height: 268px; overflow-y: auto;
+  scrollbar-width: thin;
+}
 
 .item {
+  flex-shrink: 0;
   padding: 12px;
   border: 1px solid var(--colorNeutralStroke2);
   border-radius: var(--borderRadiusMedium);
   transition: border-color var(--durationFaster) ease;
 }
 .item:hover { border-color: var(--colorNeutralStroke1); }
+
+/* O contador fica ao lado do hash, não na borda direita: encostado na direita
+   ele era empurrado por qualquer mudança de largura do botão. */
 .item-topo { display: flex; align-items: center; gap: 8px; }
 .item-link {
-  flex: 1; min-width: 0;
+  flex-shrink: 0;
   font-family: var(--fontFamilyMonospace); font-size: 14px; font-weight: 600;
   color: var(--colorBrandForeground1); text-decoration: none;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .item-link:hover { text-decoration: underline; }
+.item-espaco { flex: 1; min-width: 0; }
 .item-url {
   margin: 4px 0 0; font-size: 12px; line-height: 16px;
   color: var(--colorNeutralForeground3);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
 /* Badge do Fluent 2 (appearance="tint") */
 .badge {
-  flex-shrink: 0; min-width: 28px; text-align: center;
+  flex-shrink: 0; min-width: 24px; text-align: center;
   padding: 2px 8px; font-size: 12px; line-height: 16px; font-weight: 600;
   font-variant-numeric: tabular-nums;
   border-radius: 10000px;
   background: var(--colorBrandBackground2); color: var(--colorBrandForeground1);
 }
-.btn-mini {
-  flex-shrink: 0; height: 24px; padding: 0 8px; font-size: 12px;
-  background: none; color: var(--colorNeutralForeground2);
-  border: 1px solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusMedium);
-  font-family: inherit; font-weight: 600; cursor: pointer;
+
+/* Botão de ícone: largura fixa, então trocar o desenho de copiar para o visto
+   não mexe em nada ao redor. */
+.btn-icone {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0;
+  background: none; color: var(--colorNeutralForeground3);
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
+  cursor: pointer;
+  transition: background-color var(--durationFaster) ease,
+              color var(--durationFaster) ease;
 }
-.btn-mini:hover { background: var(--colorSubtleBackgroundHover); }
+.btn-icone:hover { background: var(--colorSubtleBackgroundHover); color: var(--colorNeutralForeground1); }
+.btn-icone.copiado { color: var(--colorBrandForeground1); border-color: var(--colorBrandStroke1); }
+
 .vazio {
-  padding: 24px 0; text-align: center;
+  margin: auto 0; padding: 24px 0; text-align: center;
   color: var(--colorNeutralForeground3); font-size: 14px;
+}
+
+/* Esqueleto de carregamento, com as mesmas medidas do item real para a lista
+   não dar um salto quando os dados chegam. */
+.skel {
+  flex-shrink: 0;
+  padding: 12px;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium);
+}
+.skel-barra {
+  height: 14px; border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground3);
+  background-image: linear-gradient(
+    90deg,
+    var(--colorNeutralBackground3) 0%,
+    var(--colorNeutralStroke2) 50%,
+    var(--colorNeutralBackground3) 100%);
+  background-size: 200% 100%;
+  animation: brilho 1.4s ease-in-out infinite;
+}
+.skel-barra + .skel-barra { height: 10px; margin-top: 8px; }
+@keyframes brilho {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel-barra { animation: none; }
 }
 .ok { color: var(--colorPaletteGreenForeground1); }
 </style>
@@ -316,6 +367,16 @@ async function pedir(caminho, opcoes) {
   return resposta.json();
 }
 
+const ICONE_COPIAR = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M15 5.5A1.5 1.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A1.5 1.5 0 0 0 5.5 15"
+        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</svg>`;
+const ICONE_FEITO = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <path d="M5 12.5 10 17.5 19 7" stroke="currentColor" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 async function copiar(texto, botao) {
   try {
     // navigator.clipboard só existe em origem segura, e o site hospedado no
@@ -331,12 +392,23 @@ async function copiar(texto, botao) {
       document.execCommand("copy");
       campo.remove();
     }
-    const antes = botao.textContent;
-    botao.textContent = "Copiado";
-    setTimeout(() => (botao.textContent = antes), 1500);
   } catch {
     erro("Não foi possível copiar.", "Selecione o texto e copie manualmente.");
+    return;
   }
+
+  // Cancelar o timer anterior é o que faz o botão sempre voltar: sem isso,
+  // clicar duas vezes seguidas deixava o segundo timer restaurando o estado
+  // "copiado" que o primeiro ainda não tinha desfeito.
+  clearTimeout(botao.dataset.timer);
+  botao.innerHTML = ICONE_FEITO;
+  botao.classList.add("copiado");
+  botao.setAttribute("aria-label", "Copiado");
+  botao.dataset.timer = setTimeout(() => {
+    botao.innerHTML = ICONE_COPIAR;
+    botao.classList.remove("copiado");
+    botao.setAttribute("aria-label", "Copiar link");
+  }, 1500);
 }
 
 function criarItem(link) {
@@ -349,7 +421,7 @@ function criarItem(link) {
   topo.className = "item-topo";
 
   // Abre em outra aba de propósito: clicar aqui passa pelo redirect e gera
-  // um clique de verdade — é assim que se demonstra o contador subindo.
+  // um clique de verdade, que é como se demonstra o contador subindo.
   const ancora = document.createElement("a");
   ancora.className = "item-link";
   ancora.href = url;
@@ -359,16 +431,20 @@ function criarItem(link) {
 
   const cliques = document.createElement("span");
   cliques.className = "badge";
-  cliques.title = "cliques";
+  cliques.title = `${link.clicks} clique(s)`;
   cliques.textContent = link.clicks;
+
+  const espaco = document.createElement("span");
+  espaco.className = "item-espaco";
 
   const botao = document.createElement("button");
   botao.type = "button";
-  botao.className = "btn-mini";
-  botao.textContent = "Copiar";
+  botao.className = "btn-icone";
+  botao.innerHTML = ICONE_COPIAR;
+  botao.setAttribute("aria-label", "Copiar link");
   botao.addEventListener("click", () => copiar(url, botao));
 
-  topo.append(ancora, cliques, botao);
+  topo.append(ancora, cliques, espaco, botao);
 
   // textContent, nunca innerHTML: a URL longa veio de quem digitou.
   const longa = document.createElement("p");
@@ -380,22 +456,37 @@ function criarItem(link) {
   return item;
 }
 
+function mostrarEsqueleto() {
+  $("lista").replaceChildren(
+    ...Array.from({ length: 3 }, () => {
+      const skel = document.createElement("li");
+      skel.className = "skel";
+      skel.setAttribute("aria-hidden", "true");
+      skel.innerHTML = `<div class="skel-barra" style="width:38%"></div>
+                        <div class="skel-barra" style="width:85%"></div>`;
+      return skel;
+    })
+  );
+}
+
+function mostrarVazio(texto) {
+  const vazio = document.createElement("li");
+  vazio.className = "vazio";
+  vazio.textContent = texto;
+  $("lista").replaceChildren(vazio);
+}
+
 async function carregar() {
   const botao = $("btn-atualizar");
   botao.disabled = true;
+  mostrarEsqueleto();
   try {
     const { links } = await pedir("/urls");
-    $("lista").replaceChildren();
-    if (links.length === 0) {
-      const vazio = document.createElement("li");
-      vazio.className = "vazio";
-      vazio.textContent = "Nenhum link ainda.";
-      $("lista").append(vazio);
-    } else {
-      $("lista").append(...links.map(criarItem));
-    }
+    if (links.length === 0) mostrarVazio("Nenhum link ainda.");
+    else $("lista").replaceChildren(...links.map(criarItem));
     limparErro();
   } catch (e) {
+    mostrarVazio("Não foi possível carregar a lista.");
     erro(...mensagemDeFalha(e));
   } finally {
     botao.disabled = false;
