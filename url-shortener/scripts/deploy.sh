@@ -74,11 +74,19 @@ subir_lambda() {
   cp "lambdas/$arquivo" "$(dirname "$zip")/lambda_function.py"
   (cd "$(dirname "$zip")" && zip -q fn.zip lambda_function.py)
 
+  # Lê o nome da função despachante do próprio arquivo em vez de assumir
+  # "lambda_handler". Fixar o nome aqui fazia o deploy quebrar com
+  # Runtime.HandlerNotFound sempre que o código usava outro.
+  local fn
+  fn=$(grep -oE "^def [a-zA-Z_][a-zA-Z0-9_]*" "lambdas/$arquivo" \
+       | sed "s/^def //" | grep -v "^_" | tail -1)
+  local handler="lambda_function.${fn:-lambda_handler}"
+
   if existe aws lambda get-function --function-name "$nome"; then
     aws lambda update-function-code --function-name "$nome" --zip-file "fileb://$zip" >/dev/null
     aws lambda wait function-updated --function-name "$nome"
     aws lambda update-function-configuration --function-name "$nome" \
-      --handler lambda_function.lambda_handler --role "$ROLE_ARN" --timeout "$timeout" \
+      --handler "$handler" --role "$ROLE_ARN" --timeout "$timeout" \
       --environment "Variables={TABELA_NOME=$TABELA,FILA_URL=$FILA_URL}" >/dev/null
   else
     # Role recém-criada leva alguns segundos para o Lambda conseguir assumir.
@@ -86,7 +94,7 @@ subir_lambda() {
     # e some sozinho — daí o retry em vez de um sleep fixo no escuro.
     local tentativa=0
     until aws lambda create-function --function-name "$nome" --runtime python3.13 \
-      --handler lambda_function.lambda_handler --role "$ROLE_ARN" --timeout "$timeout" \
+      --handler "$handler" --role "$ROLE_ARN" --timeout "$timeout" \
       --environment "Variables={TABELA_NOME=$TABELA,FILA_URL=$FILA_URL}" \
       --zip-file "fileb://$zip" >/dev/null 2>&1; do
       tentativa=$((tentativa + 1))

@@ -82,10 +82,14 @@ def _listar(event):
 
     # Número no DynamoDB volta como Decimal, e json.dumps não serializa
     # Decimal, sem os int() aqui a resposta quebra com TypeError e vira 500.
+    # `.get()` em vez de `[...]`: um `update_item` com ADD cria o item se ele não
+    # existir, então a tabela pode acabar com um registro só de contador, sem
+    # longUrl. Num banco sem schema isso é possível, e a listagem não pode cair
+    # por causa de um item incompleto.
     links = sorted(
-        ({"shortId": i["shortId"], "longUrl": i["longUrl"],
+        ({"shortId": i["shortId"], "longUrl": i.get("longUrl", ""),
           "clicks": int(i.get("clicks", 0)), "createdAt": int(i.get("createdAt", 0))}
-         for i in itens),
+         for i in itens if i.get("longUrl")),
         key=lambda link: link["createdAt"],
         reverse=True,
     )
@@ -122,7 +126,7 @@ ROTAS = {
 }
 
 
-def handler(event, ctx):
+def lambda_handler(event, context):
     tratar = ROTAS.get(event.get("routeKey"))
     if not tratar:
         return _resposta(404, {"error": f"Rota não tratada: {event.get('routeKey')}"})

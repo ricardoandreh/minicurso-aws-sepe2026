@@ -433,6 +433,7 @@ function criarItem(link) {
   ancora.target = "_blank";
   ancora.rel = "noopener";
   ancora.textContent = link.shortId;
+  ancora.addEventListener("click", agendarAtualizacao);
 
   const cliques = document.createElement("span");
   cliques.className = "badge";
@@ -481,22 +482,44 @@ function mostrarVazio(texto) {
   $("lista").replaceChildren(vazio);
 }
 
-async function carregar() {
+let carregando = false;
+
+// `esqueleto` só na primeira carga e no botão Atualizar. Nas recargas
+// automáticas ele piscaria a lista inteira a cada clique num link.
+async function carregar({ esqueleto = false } = {}) {
+  if (carregando) return;
+  carregando = true;
   const botao = $("btn-atualizar");
   botao.disabled = true;
-  mostrarEsqueleto();
+  if (esqueleto) mostrarEsqueleto();
   try {
     const { links } = await pedir("/urls");
     if (links.length === 0) mostrarVazio("Nenhum link ainda.");
     else $("lista").replaceChildren(...links.map(criarItem));
     limparErro();
   } catch (e) {
-    mostrarVazio("Não foi possível carregar a lista.");
+    if (esqueleto) mostrarVazio("Não foi possível carregar a lista.");
     erro(...mensagemDeFalha(e));
   } finally {
+    carregando = false;
     botao.disabled = false;
   }
 }
+
+// O clique abre o link em outra aba e o contador sobe cerca de 1 segundo
+// depois, porque passa pela fila. Dois gatilhos cobrem os dois jeitos de
+// usar: voltar para esta aba (o caso comum) e ficar nela, quando o navegador
+// abre o link em segundo plano.
+let timerClique = null;
+
+function agendarAtualizacao() {
+  clearTimeout(timerClique);
+  timerClique = setTimeout(() => carregar(), 2000);
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") carregar();
+});
 
 $("form").addEventListener("submit", async (evento) => {
   evento.preventDefault();
@@ -520,8 +543,8 @@ $("form").addEventListener("submit", async (evento) => {
   }
 });
 
-$("btn-atualizar").addEventListener("click", carregar);
-carregar();
+$("btn-atualizar").addEventListener("click", () => carregar({ esqueleto: true }));
+carregar({ esqueleto: true });
 </script>
 </body>
 </html>
