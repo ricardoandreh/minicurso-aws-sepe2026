@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Encurtador de URL</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230f6cbd'/%3E%3Cpath d='M10 14a4 4 0 0 0 5.66 0l2-2A4 4 0 0 0 12 6.34l-1 1M14 10a4 4 0 0 0-5.66 0l-2 2A4 4 0 0 0 12 17.66l1-1' fill='none' stroke='white' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232d843b'/%3E%3Cpath d='M10 14a4 4 0 0 0 5.66 0l2-2A4 4 0 0 0 12 6.34l-1 1M14 10a4 4 0 0 0-5.66 0l-2 2A4 4 0 0 0 12 17.66l1-1' fill='none' stroke='white' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 /* Tokens do Microsoft Fluent 2 (nomes conforme @fluentui/react-components) */
 :root {
@@ -21,15 +21,22 @@
   --colorNeutralStroke1: #d1d1d1;
   --colorNeutralStroke2: #e0e0e0;
   --colorNeutralStrokeAccessible: #616161;
-  --colorBrandBackground: #0f6cbd;
-  --colorBrandBackgroundHover: #115ea3;
-  --colorBrandBackgroundPressed: #0c3b5e;
-  --colorBrandBackground2: #ebf3fc;
-  --colorBrandForeground1: #0f6cbd;
-  --colorBrandStroke1: #0f6cbd;
-  --colorPaletteRedForeground1: #b10e1c;
-  --colorPaletteRedBackground1: #fdf3f4;
-  --colorPaletteGreenForeground1: #0e700e;
+  /* Marca: paleta do Instituto Federal Catarinense.
+     O verde institucional puro (#3cb04f) tem só 2,79:1 com texto branco e
+     reprova no AA da WCAG, que pede 4,5:1. Os tons de preenchimento abaixo são
+     esse mesmo verde escurecido até passar, mantendo a matiz. Os tons claros
+     (#e3f7e3) e o vermelho (#ca2027) vêm direto da paleta oficial. */
+  --ifcVerde: #3cb04f;              /* verde institucional, referência */
+  --ifcVermelho: #ca2027;           /* vermelho institucional */
+  --colorBrandBackground: #2d843b;        /* 4,69:1 com branco */
+  --colorBrandBackgroundHover: #2a7b37;   /* 5,27:1 */
+  --colorBrandBackgroundPressed: #246a2f; /* 6,61:1 */
+  --colorBrandBackground2: #e3f7e3;       /* tom claro da paleta oficial */
+  --colorBrandForeground1: #277233;       /* 5,93:1 sobre branco */
+  --colorBrandStroke1: #2d843b;
+  --colorPaletteRedForeground1: #b61d23;  /* vermelho IFC escurecido, 6,59:1 */
+  --colorPaletteRedBackground1: #fdf2f3;
+  --colorPaletteGreenForeground1: #246a2f;
   --colorStrokeFocus2: #000000;
   --shadow2: 0 1px 2px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
   --borderRadiusMedium: 4px;
@@ -55,15 +62,15 @@
     --colorNeutralStroke1: #666666;
     --colorNeutralStroke2: #525252;
     --colorNeutralStrokeAccessible: #adadad;
-    --colorBrandBackground: #115ea3;
-    --colorBrandBackgroundHover: #0f6cbd;
-    --colorBrandBackgroundPressed: #0c3b5e;
-    --colorBrandBackground2: #0c2a47;
-    --colorBrandForeground1: #479ef5;
-    --colorBrandStroke1: #479ef5;
-    --colorPaletteRedForeground1: #dc626d;
+    --colorBrandBackground: #2d843b;
+    --colorBrandBackgroundHover: #308d3f;
+    --colorBrandBackgroundPressed: #246a2f;
+    --colorBrandBackground2: #16331a;
+    --colorBrandForeground1: #63c072;       /* 6,45:1 sobre #292929 */
+    --colorBrandStroke1: #63c072;
+    --colorPaletteRedForeground1: #ee7a7f;
     --colorPaletteRedBackground1: #3b1113;
-    --colorPaletteGreenForeground1: #54b054;
+    --colorPaletteGreenForeground1: #63c072;
     --colorStrokeFocus2: #ffffff;
     --shadow2: 0 1px 2px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.24);
   }
@@ -89,10 +96,28 @@ body {
   outline-offset: 1px;
 }
 
+/* Faixa do vermelho ao verde, o elemento gráfico da identidade do IFC.
+   Fica no topo do card em vez de ocupar a página inteira: dá a assinatura
+   visual sem competir com o conteúdo. */
+.card::before {
+  content: "";
+  display: block;
+  height: 4px;
+  margin: -24px -24px 20px;
+  border-radius: var(--borderRadiusXLarge) var(--borderRadiusXLarge) 0 0;
+  background: linear-gradient(
+    90deg,
+    var(--ifcVermelho) 0 22%,
+    #349a46 22%, #3cb04f 34%, #62ca71 48%,
+    #8eda96 62%, #c2ecc4 78%, #e9f9e9 92%, #f8fef8 100%
+  );
+}
+
 .card {
   width: 100%;
   max-width: 460px;
   padding: 24px;
+  overflow: hidden;
   background: var(--colorNeutralBackground1);
   border: 1px solid var(--colorNeutralStroke2);
   border-radius: var(--borderRadiusXLarge);
