@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Encurtador de URL serverless na AWS: S3, API Gateway, Lambda, DynamoDB e SQS. Projeto do minicurso do IFC.">
 <title>Encurtador de URL</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232d843b'/%3E%3Cpath d='M10 14a4 4 0 0 0 5.66 0l2-2A4 4 0 0 0 12 6.34l-1 1M14 10a4 4 0 0 0-5.66 0l-2 2A4 4 0 0 0 12 17.66l1-1' fill='none' stroke='white' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -281,20 +282,28 @@ ul {
   border-radius: var(--borderRadiusMedium);
 }
 .skel-barra {
-  height: 14px; border-radius: var(--borderRadiusMedium);
+  position: relative;
+  overflow: hidden;
+  height: 14px;
+  border-radius: var(--borderRadiusMedium);
   background: var(--colorNeutralBackground3);
-  background-image: linear-gradient(
-    90deg,
-    var(--colorNeutralBackground3) 0%,
-    var(--colorNeutralStroke2) 50%,
-    var(--colorNeutralBackground3) 100%);
-  background-size: 200% 100%;
-  animation: brilho 1.4s ease-in-out infinite;
 }
 .skel-barra + .skel-barra { height: 10px; margin-top: 8px; }
+
+/* O brilho anda com `transform`, não com `background-position`. Só transform e
+   opacity são compostos fora da main thread; animar background-position obriga
+   o navegador a repintar a cada quadro. */
+.skel-barra::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg, transparent, var(--colorNeutralStroke2), transparent);
+  transform: translateX(-100%);
+  animation: brilho 1.4s ease-in-out infinite;
+}
 @keyframes brilho {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
+  to { transform: translateX(100%); }
 }
 @media (prefers-reduced-motion: reduce) {
   .skel-barra { animation: none; }
