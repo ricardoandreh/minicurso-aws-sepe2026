@@ -1,6 +1,7 @@
 # 4. A porta de entrada
 
-> Série: construindo um encurtador de URL serverless na AWS — [índice](README.md)
+> Parte da série *construindo um encurtador de URL serverless na AWS*.
+> [Voltar ao índice](README.md)
 
 A função existe mas ninguém alcança. Falta o endereço.
 
@@ -16,17 +17,17 @@ Três conceitos, e vale separá-los porque o console os mistura:
 **Rota** é o par método + caminho: `POST /shorten`, `GET /{shortId}`. O trecho
 entre chaves é variável e chega à função em `pathParameters`.
 
-**Integração** é para onde a rota aponta — no nosso caso, uma Lambda.
+**Integração** é para onde a rota aponta, no nosso caso uma Lambda.
 
 **Permissão** é o direito do API Gateway de invocar aquela função. Fica na
 *resource policy* da Lambda, não na role. É um terceiro elemento, invisível na
 tela de rotas, e é a causa de erro mais frequente deste artigo.
 
 Existem dois tipos de API: **REST API** (v1, mais recursos, mais cara) e **HTTP
-API** (v2, mais simples, mais barata, mais rápida). Vamos de HTTP API — e
-registre uma diferença que importa: **HTTP API não tem API Key nem Usage Plan**.
-Esses são exclusivos da REST API. Muita gente perde tempo procurando no console
-uma opção que não existe ali.
+API** (v2, mais simples, mais barata, mais rápida). Vamos de HTTP API, e vale
+guardar uma diferença: **HTTP API não tem API Key nem Usage Plan**. Esses são
+exclusivos da REST API, e é fácil perder um tempão procurando no console uma
+opção que não existe ali.
 
 ## Onde entra no encurtador
 
@@ -68,8 +69,8 @@ Na etapa de rotas, configure as três apontando para a mesma integração:
 formato de caminho. O API Gateway resolve isso dando precedência ao **segmento
 literal**: `/urls` cai na listagem, não no redirect. Se você esquecer de criar a
 rota `/urls`, o caminho `/urls` casa com `/{shortId}` e sua função vai procurar
-um link chamado "urls" no banco — devolvendo 404 por um motivo completamente
-diferente do que parece.
+um link chamado "urls" no banco, devolvendo 404 por um motivo bem diferente do
+que parece.
 
 ### 3. Configurar o CORS
 
@@ -120,11 +121,11 @@ a Lambda gerou log**. Se não gerou, o problema está antes dela.
 | nada, e erro de CORS no console do navegador | não | preflight bloqueado |
 | `{"error":"..."}` | sim | é o seu código respondendo |
 
-**O 500 sem log** merece destaque. Quando você cria uma rota e **seleciona uma
+**O 500 sem log** é o mais chato dos quatro. Quando você cria uma rota e **seleciona uma
 integração já existente**, o console não adiciona a permissão de invocação para
 aquela rota. O API Gateway tenta chamar a função, toma `AccessDenied` e devolve
 o 500 genérico dele. Sua função nunca roda, então não há log nenhum para
-consultar — o que faz você procurar no lugar errado.
+consultar, o que leva a gente a procurar no lugar errado.
 
 Para corrigir: apague a rota e recrie usando **Create and attach an
 integration**, que adiciona a permissão.
@@ -134,8 +135,9 @@ problema**. O `curl` não faz preflight. A API responde 201 lindamente na linha 
 comando e o site continua sem funcionar, o que leva você a culpar o JavaScript.
 
 E ele é sutil porque o CORS pode estar *quase* certo. Com origem e métodos
-configurados mas **sem `content-type` nos headers**, o preflight devolve 204 —
-sucesso — mas sem nenhum cabeçalho `Access-Control-*`, e o navegador cancela.
+configurados mas **sem `content-type` nos headers**, o preflight devolve 204,
+que é sucesso, só que sem nenhum cabeçalho `Access-Control-*`. Aí o navegador
+cancela.
 Como o frontend manda `Content-Type: application/json`, é justamente esse header
 que obriga o preflight.
 
@@ -155,7 +157,7 @@ HTTP**. Ela recebe um dicionário e devolve um dicionário. Quem converte isso d
 e para a web é outro serviço, gerenciado, que escala sozinho.
 
 É desacoplamento real, não metáfora: a mesma função poderia ser acionada por uma
-fila amanhã, sem mudar a lógica — só o formato do evento. E é por isso que o
+fila amanhã, sem mudar a lógica, só o formato do evento. E é por isso que o
 próximo artigo consegue acrescentar um caminho totalmente assíncrono sem
 reescrever nada do que já existe.
 
@@ -163,6 +165,6 @@ reescrever nada do que já existe.
 
 O encurtador funciona. Mas repare no redirect: ele busca a URL, conta o clique e
 só então responde. Quem clicou está esperando o banco ser atualizado para ser
-redirecionado — e contar clique não é urgente para ninguém.
+redirecionado, e contar clique não é urgente para ninguém.
 
 **Próximo:** [5. Tirando trabalho do caminho crítico](05-sqs.md)

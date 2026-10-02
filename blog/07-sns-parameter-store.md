@@ -1,6 +1,7 @@
 # 7. Avisando o mundo
 
-> Série: construindo um encurtador de URL serverless na AWS — [índice](README.md)
+> Parte da série *construindo um encurtador de URL serverless na AWS*.
+> [Voltar ao índice](README.md)
 
 O pipe entrega no tópico, mas ninguém está ouvindo. Vamos fechar a cadeia.
 
@@ -25,7 +26,7 @@ por **um**; no tópico, a mesma mensagem vai para **todos**.
 Um cofre de configuração do AWS Systems Manager. Guarda valores por nome, e o
 tipo `SecureString` cifra com KMS.
 
-No tier padrão é **gratuito** — diferente do Secrets Manager, que cobra por
+No tier padrão é **gratuito**, diferente do Secrets Manager, que cobra por
 segredo por mês.
 
 ## Onde entram no encurtador
@@ -37,12 +38,12 @@ ambiente de Lambda aparece **em texto puro** para qualquer um que abra a funçã
 no console. É o mesmo erro de embutir uma chave no JavaScript do frontend, só que
 no backend.
 
-**E por que o SNS, se há um assinante só?** Honestamente: com um assinante, é
-investimento, não necessidade. A função de marco já existe e poderia postar
+**E por que o SNS, se há um assinante só?** Sendo honesto: com um assinante só,
+ele é mais investimento do que necessidade. A função de marco já existe e poderia postar
 direto. O ganho aparece no dia em que você quiser avisar também no Slack ou
 alimentar um ranking: adiciona um assinante e **não toca** em nada que já
-funciona. Fingir que é indispensável seria desonesto; o argumento verdadeiro é o
-custo de mudança no futuro.
+funciona. Dizer que ele é indispensável agora seria exagero; o argumento de
+verdade é o custo de mudar depois.
 
 ## Hands-on
 
@@ -62,8 +63,8 @@ Console → **Systems Manager** → **Parameter Store** → **Create parameter**
 
 **Create parameter.**
 
-> 📸 **Print:** o parâmetro criado na lista, mostrando o tipo SecureString —
-> sem revelar o valor.
+> 📸 **Print:** o parâmetro criado na lista, mostrando o tipo SecureString, sem
+> revelar o valor.
 
 ### 2. Criar a função de aviso
 
@@ -118,8 +119,8 @@ invocação é a forma mais comum de esbarrar no limite de requisições do Para
 Store sem entender por quê.
 
 **A função não decide nada.** Quem decidiu foi o filtro do pipe. Ela recebe,
-formata e posta. Uma responsabilidade só — e por isso não precisa de nenhum
-campo de controle na tabela.
+formata e posta. Uma responsabilidade só, e por isso não precisa de nenhum campo
+de controle na tabela.
 
 ## O que deu errado (e por quê)
 
@@ -128,7 +129,7 @@ artigo 3: o console espera `lambda_function.lambda_handler`. Renomeie a função
 no código.
 
 **A Lambda é invocada três vezes com o mesmo RequestId.** Não é bug, é o SNS
-reentregando porque a função falhou. Invocação assíncrona tem retry automático —
+reentregando porque a função falhou. Invocação assíncrona tem retry automático,
 e esse é o contraste com o API Gateway, que teria devolvido 500 na cara do
 usuário sem tentar de novo.
 
@@ -159,14 +160,14 @@ clique no link
 
 Sete passos, e **nenhum deles chama o seguinte**. Cada um reage a um fato e
 produz outro. Você pode derrubar qualquer peça do meio que as anteriores
-continuam funcionando — as mensagens esperam.
+continuam funcionando, porque as mensagens esperam.
 
 E a extensibilidade é concreta, não teórica. Quer avisar no Slack? Assina o
 tópico. Quer um painel de marcos? Assina o tópico. Quer contar cliques de outro
 jeito? Mais um consumidor. Em nenhum caso você abre o código do que já existe.
 
-Isso é o que serverless e event-driven entregam juntos: **peças pequenas que não
-se conhecem, que escalam sozinhas e que você só paga quando acontecem.**
+No fim, é isso que serverless e event-driven entregam juntos: **peças pequenas
+que não se conhecem, que escalam sozinhas e que você só paga quando acontecem.**
 
 ## Limpeza
 
@@ -208,5 +209,5 @@ E um incômodo que ficou pelo caminho: **todo esse trabalho foi feito a cliques*
 Nada está versionado, nada é reproduzível com segurança, e refazer numa segunda
 conta significa repetir tudo torcendo para não esquecer um passo.
 
-É esse problema que a infraestrutura como código resolve — mas isso é outra
+É esse problema que a infraestrutura como código resolve, mas isso já é outra
 série.

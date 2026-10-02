@@ -1,9 +1,10 @@
 # 5. Tirando trabalho do caminho crítico
 
-> Série: construindo um encurtador de URL serverless na AWS — [índice](README.md)
+> Parte da série *construindo um encurtador de URL serverless na AWS*.
+> [Voltar ao índice](README.md)
 
-O encurtador funciona. Agora vamos melhorá-lo — e, de quebra, encontrar o
-primeiro pedaço genuinamente event-driven da aplicação.
+O encurtador funciona. Agora vamos melhorá-lo e, de quebra, encontrar o primeiro
+pedaço genuinamente event-driven da aplicação.
 
 ## O problema
 
@@ -33,7 +34,7 @@ lados não precisam estar disponíveis ao mesmo tempo.
 ## Como funciona
 
 **A mensagem espera.** Se o consumidor estiver fora do ar, ela fica na fila até
-alguém ler — por até 14 dias.
+alguém ler, por até 14 dias.
 
 **A mensagem não some ao ser lida.** Ela fica *invisível* por um tempo (o
 *visibility timeout*). Se o consumidor terminar, ele a apaga. Se cair no meio,
@@ -58,11 +59,11 @@ ficaram numa função só porque compartilhavam gatilho e ciclo de vida. O conta
 é outra função porque:
 
 - reage a outro gatilho (fila, não HTTP)
-- é assíncrono — pode demorar, ninguém espera
+- é assíncrono, pode demorar que ninguém está esperando
 - pode ser repetido sem prejuízo
 - se falhar, a mensagem volta para a fila em vez de virar erro na cara do usuário
 
-Separe por **gatilho e ciclo de vida**, não por URL.
+Em resumo: separe por **gatilho e ciclo de vida**, não por URL.
 
 ## Hands-on
 
@@ -132,8 +133,8 @@ tabela.update_item(
 
 `ADD` é o **contador atômico** do DynamoDB. Duas execuções simultâneas não
 perdem contagem, e funciona mesmo se o atributo ainda não existir. Ler, somar em
-Python e gravar de volta teria condição de corrida — dois cliques ao mesmo tempo
-virariam um.
+Python e gravar de volta teria condição de corrida, e dois cliques simultâneos
+virariam um só.
 
 ### 4. Ligar a fila na função
 
@@ -153,13 +154,13 @@ Clique num link curto algumas vezes e acompanhe:
 
 > 📸 **Print:** o gráfico de mensagens do SQS com o pico de envio e consumo.
 
-Repare: **ninguém invocou o contador**. Ele reagiu.
+Repare numa coisa: **ninguém invocou o contador**. Ele simplesmente reagiu.
 
 ## O que deu errado (e por quê)
 
 **O contador não dispara.** Confira se o gatilho é o SQS. É fácil, montando
-vários serviços, ligar uma função no gatilho errado — e o sintoma é silêncio
-total, não erro.
+vários serviços, ligar uma função no gatilho errado. E o sintoma é silêncio
+total, não erro, o que torna a procura mais difícil.
 
 **`Records` sempre com uma mensagem só.** O `for` no código parece inútil. Não
 é: o Lambda agrupa quando a fila acumula. Mas isso depende de duas coisas,
@@ -169,14 +170,30 @@ no instante da leitura, que é quase sempre uma.
 
 E mesmo com as duas, só agrupa sob acúmulo de verdade. Testando com 20 cliques
 disparados em paralelo, os lotes foram de 1 e 2. Jogando 30 mensagens de uma vez
-direto na fila, apareceu um lote de 6. **Lote é sintoma de fila acumulando** — em
+direto na fila, apareceu um lote de 6. **Lote é sintoma de fila acumulando.** Em
 volume baixo você vai ver sempre uma mensagem, e o `for` continua sendo o certo a
 escrever desde o começo.
+
+**Erro 503 quando você testa com muitos cliques de uma vez.** Esse merece um parágrafo
+próprio, porque parece que a aplicação quebrou e não é bem isso.
+
+Toda conta tem um limite de execuções simultâneas do Lambda, e contas novas
+começam com **10**, não com os 1000 do padrão antigo. Disparando 40 cliques em
+paralelo, 25 voltaram 503: as funções `api` e `counter` disputam as mesmas 10
+vagas, e o excedente é recusado.
+
+Confira o seu em **Service Quotas → AWS Lambda → Concurrent executions** antes
+de demonstrar carga para alguém.
+
+E repare no detalhe bonito que o throttling revela: os cliques recusados **não
+se perderam**. As mensagens continuaram na fila, voltaram e foram processadas
+quando houve vaga. Num desenho síncrono, cada 503 seria um clique perdido para
+sempre. É a fila fazendo exatamente o trabalho que justifica a existência dela.
 
 **Mensagem presa, voltando sem parar.** Se a função falha sempre com a mesma
 mensagem, ela reaparece indefinidamente. É para isso que existe a **Dead Letter
 Queue**: depois de N tentativas, a mensagem vai para uma fila separada e para de
-atrapalhar. Nossa fila não tem DLQ — em produção teria.
+atrapalhar. Nossa fila não tem DLQ, mas em produção teria.
 
 ## Como isso sustenta event-driven
 
@@ -187,8 +204,8 @@ alguém chama e espera a resposta. É desacoplado no *código*, mas acoplado no
 *tempo*.
 
 A fila desacopla no tempo. O redirect não sabe quem vai contar, nem quando, nem
-se vai dar certo na primeira tentativa. Ele publica um fato — *"este link foi
-clicado"* — e segue a vida. Quem se interessa, reage.
+se vai dar certo na primeira tentativa. Ele publica um fato, *"este link foi
+clicado"*, e segue a vida. Quem se interessa, reage.
 
 E isso tem consequência prática: se o contador ficar fora do ar por dez minutos,
 nenhum usuário percebe. As mensagens esperam, e quando ele voltar, processa
@@ -197,8 +214,8 @@ redirect quebrado.
 
 ## O que ainda não dá para fazer
 
-O contador escreve no banco. E se quiséssemos reagir a *isso* — comemorar quando
-um link bate 10 cliques?
+O contador escreve no banco. E se a gente quisesse reagir a *isso*, comemorando
+quando um link bate 10 cliques?
 
 A tentação é acrescentar o `if` dentro do contador. Mas aí ele deixa de ter uma
 responsabilidade só, e para avisar em mais um canal amanhã seria preciso mexer

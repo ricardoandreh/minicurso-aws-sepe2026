@@ -1,6 +1,7 @@
 # 2. Onde o dado mora
 
-> Série: construindo um encurtador de URL serverless na AWS — [índice](README.md)
+> Parte da série *construindo um encurtador de URL serverless na AWS*.
+> [Voltar ao índice](README.md)
 
 No artigo anterior o site subiu, mas não tem com quem falar. Vamos dar a ele um
 lugar para guardar os links.
@@ -43,8 +44,8 @@ createdAt 1790742633
 ```
 
 Quando alguém acessa o link curto, o `shortId` vem na URL. É exatamente a
-partition key — ou seja, a busca mais barata e mais rápida que o DynamoDB
-oferece, direto no caminho que mais importa para o usuário.
+partition key, ou seja, a busca mais barata e mais rápida que o DynamoDB
+oferece, bem no caminho que mais importa para o usuário.
 
 ## Hands-on
 
@@ -111,12 +112,13 @@ Com dois itens parece igual. Com dois milhões, não é.
 ## O que deu errado (e por quê)
 
 **"Attribute name is a reserved word".** Algumas palavras são reservadas em
-expressões do DynamoDB — `status`, `name`, `size`, `count`. Você ainda pode usá-las
+expressões do DynamoDB, entre elas `status`, `name`, `size` e `count`. Você
+ainda pode usá-las
 como nome de atributo, mas precisa de um apelido na hora de escrever a
 expressão. Aparece mais tarde, quando o código for atualizar o contador.
 
 **O número volta diferente do que você gravou.** O DynamoDB tem um tipo numérico
-só, de precisão alta. Nas bibliotecas isso vira `Decimal`, não `int` — e
+só, de precisão alta. Nas bibliotecas isso vira `Decimal`, não `int`, e
 `Decimal` não é serializável em JSON. É uma das causas mais comuns de erro 500
 em API que lê DynamoDB, e vamos esbarrar nela no artigo 3.
 
@@ -127,7 +129,7 @@ configurou réplica, não definiu quanto disco reservar, não criou usuário de
 banco. A tabela está pronta para uma requisição por dia ou um milhão por
 segundo, e você não precisa decidir qual antes.
 
-E o "sem schema" não é desleixo — é o que permite o padrão que você vai ver no
+E o "sem schema" não é desleixo. É o que permite o padrão que você vai ver no
 artigo 6: **o mesmo item vai ganhando atributos conforme atravessa o fluxo**. A
 aplicação grava `shortId` e `longUrl`; o contador acrescenta cliques; mais tarde
 outro processo acrescenta um marco. Nenhum deles precisou declarar nada antes.

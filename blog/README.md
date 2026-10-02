@@ -41,13 +41,13 @@ um link bate 10 cliques, um parabéns é postado num canal do Discord.
 
 ## Estrutura de cada artigo
 
-1. **O que é** — uma frase, sem jargão
-2. **Como funciona** — o modelo mental que você precisa ter
-3. **Onde entra no encurtador** — o papel concreto na aplicação
-4. **Hands-on** — passos numerados no console
-5. **O que deu errado (e por quê)** — os erros reais que aparecem nesse passo
-6. **Como isso sustenta serverless e event-driven** — a ideia que fica
-7. **O que ainda não dá para fazer** — a ponte para o próximo artigo
+1. **O que é**: uma frase, sem jargão
+2. **Como funciona**: o modelo mental que ajuda a entender o resto
+3. **Onde entra no encurtador**: o papel dele na aplicação
+4. **Hands-on**: passos numerados no console
+5. **O que deu errado (e por quê)**: os erros que costumam aparecer nesse passo
+6. **Como isso sustenta serverless e event-driven**: a ideia que fica
+7. **O que ainda não dá para fazer**: a ponte para o próximo artigo
 
 ## Convenções
 
@@ -71,14 +71,15 @@ mesmos ao longo da série:
 | Tópico SNS | `congrats-urls` |
 | Função do Discord | `url-shortener-alert` |
 
-**Ambiente.** Os artigos assumem uma conta AWS comum. Onde o AWS Academy
-Learner Lab se comporta diferente — e ele se comporta, principalmente em IAM —
-há uma nota explícita.
+**Ambiente.** Os artigos assumem uma conta AWS comum. O AWS Academy Learner
+Lab se comporta um pouco diferente em alguns pontos, principalmente em IAM, e
+onde isso acontece tem uma nota avisando.
 
 **Código.** Está em [`../url-shortener/`](../url-shortener/): `index.html` e as
 três funções em `lambdas/`.
 
 ## Limpeza
 
-No fim da série, para não deixar nada cobrando: apague na ordem inversa — pipe,
-tópico, funções, fila, tabela, bucket. O artigo 7 tem a lista completa.
+No fim da série, para não deixar nada cobrando, apague na ordem inversa da
+construção: pipe, tópico, funções, fila, tabela, bucket. O artigo 7 tem a lista
+completa, com o porquê da ordem.

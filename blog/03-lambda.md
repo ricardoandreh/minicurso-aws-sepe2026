@@ -1,6 +1,7 @@
 # 3. O código que roda sem servidor
 
-> Série: construindo um encurtador de URL serverless na AWS — [índice](README.md)
+> Parte da série *construindo um encurtador de URL serverless na AWS*.
+> [Voltar ao índice](README.md)
 
 Temos um site e uma tabela. Falta o que fica no meio.
 
@@ -17,11 +18,11 @@ aconteceu) e o **contexto** (dados da execução). Ela processa e retorna.
 Três ideias que mudam como você escreve código:
 
 **A função não sabe quem a chamou.** Para o Lambda, tudo é um dicionário.
-Requisição HTTP, mensagem de fila, alteração no banco — tudo chega como JSON. É
+Requisição HTTP, mensagem de fila, alteração no banco, tudo chega como JSON. É
 quem configura o gatilho que define o formato.
 
-**Ela não guarda nada entre execuções.** Variável global pode sobreviver — ou
-não. Estado vai para o banco.
+**Ela não guarda nada entre execuções.** Variável global às vezes sobrevive,
+às vezes não. Estado vai para o banco.
 
 **Permissão é explícita e não vem de graça.** Toda função executa com uma
 **role** do IAM. Sem permissão declarada, qualquer chamada à AWS falha com
@@ -37,7 +38,7 @@ Uma função trata as três rotas HTTP:
 | `GET /urls` | lista os links |
 | `GET /{shortId}` | busca a URL longa e redireciona |
 
-**Por que uma função e não três.** O critério para separar não é a URL — é o
+**Por que uma função e não três.** O critério para separar não é a URL, é o
 **gatilho e o ciclo de vida**. As três reagem ao mesmo gatilho (HTTP, síncrono),
 escalam juntas e falham juntas. São uma função.
 
@@ -92,7 +93,7 @@ ambiguidade é o `routeKey`, que o API Gateway entrega já resolvido.
 | Chave | Valor |
 |---|---|
 | `TABELA_NOME` | `url-shortener-urls` |
-| `FILA_URL` | deixe em branco por enquanto — entra no artigo 5 |
+| `FILA_URL` | deixe em branco por enquanto, ela entra no artigo 5 |
 
 Nome de tabela não vai hardcoded no código: muda por ambiente, e código que
 muda por ambiente não é código, é configuração.
@@ -105,8 +106,9 @@ aba → **Add permissions → Attach policies** → procure `AmazonDynamoDBFullA
 
 > 📸 **Print:** a role do IAM com a policy recém-anexada na lista.
 
-Pare um segundo aqui. `FullAccess` dá mais de cinquenta ações em **todas** as
-tabelas da conta a uma função que precisa de três ações numa tabela só. Em
+Vale parar um segundo aqui. A `FullAccess` dá mais de cinquenta ações em
+**todas** as tabelas da conta a uma função que precisa de três ações numa
+tabela só. Em
 produção seria:
 
 ```json
@@ -117,7 +119,7 @@ produção seria:
 }
 ```
 
-Guarde esse incômodo. Ele tem solução, e ela não é escrever JSON à mão.
+Guarde esse incômodo. Ele tem solução, e não é escrever JSON à mão.
 
 ### 5. Testar
 
@@ -152,10 +154,10 @@ função esperando `lambda_function.lambda_handler`. Se o seu código define
 porque não acrescenta passo) ou mudar em **Runtime settings → Handler**.
 
 **`AccessDenied` no DynamoDB mesmo depois de anexar a policy.** O IAM demora
-alguns segundos — às vezes quase um minuto — para propagar. E a mensagem é
-cruel: ela diz *"no identity-based policy allows"*, que parece "você anexou a
-policy errada". Na dúvida, **espere um minuto antes de concluir que errou**. É o
-tipo de erro que faz você desfazer o que já estava certo.
+alguns segundos para propagar, às vezes quase um minuto. E a mensagem não ajuda:
+ela diz *"no identity-based policy allows"*, que soa como "você anexou a policy
+errada". Na dúvida, vale **esperar um minuto antes de concluir que errou**. É o
+tipo de coisa que faz a gente desfazer o que já estava certo.
 
 **`Object of type Decimal is not JSON serializable`.** É o tipo numérico do
 DynamoDB chegando no `json.dumps`. Por isso o código converte com `int()` antes
@@ -173,22 +175,22 @@ E o escalonamento não é seu problema: se chegarem mil requisições ao mesmo
 tempo, a AWS sobe mil execuções. Você não configurou nada, e não existe um
 número máximo que você precise estimar com antecedência.
 
-O preço disso é a disciplina: **sem estado e sem permissão implícita**. As duas
-coisas que mais incomodam no começo são exatamente as que permitem o resto.
+O preço disso é alguma disciplina: **sem estado e sem permissão implícita**. As
+duas coisas que mais incomodam no começo acabam sendo as que permitem o resto.
 
 ## Nota: IAM no AWS Academy Learner Lab
 
-No Learner Lab, `iam:CreateRole` e `iam:AttachRolePolicy` são **negados** —
+No Learner Lab, `iam:CreateRole` e `iam:AttachRolePolicy` são **negados**,
 inclusive na própria `LabRole`. Ou seja, o passo 4 não é possível ali.
 
 O caminho é escolher **Use an existing role → LabRole** na criação, e a função
 já funciona, porque a `LabRole` é bastante permissiva.
 
-Isso muda a lição, e para melhor: em vez de sentir o trabalho de anexar
-permissão, você vê o outro extremo. Abra a `LabRole` no IAM e repare em quantas
+Isso acaba mudando a lição, e para melhor: em vez de sentir o trabalho de
+anexar permissão, você vê o outro extremo. Abra a `LabRole` no IAM e repare em quantas
 policies ela tem. Uma role compartilhada que pode quase tudo é cômoda e é
-exatamente o que você não quer em produção — onde cada função teria a sua, com o
-mínimo.
+exatamente o que você não quer em produção, onde cada função teria a sua, com o
+mínimo necessário.
 
 ## O que ainda não dá para fazer
 
