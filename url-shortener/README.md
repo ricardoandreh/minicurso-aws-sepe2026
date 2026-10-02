@@ -68,6 +68,48 @@ arquivo é um espelho literal das rotas da API.
   `OPTIONS` é o API Gateway, pela configuração de CORS da HTTP API. Cabeçalho
   posto na resposta da Lambda não resolve, porque o preflight nem chega nela.
 
+## Bônus: parabéns aos 10 cliques
+
+Cadeia opcional, **não coberta pelos scripts** — montada à mão no console:
+
+```
+contador ──update_item──▶ tabela
+                           └─▶ Stream ──▶ EventBridge Pipe ──▶ SNS ──▶ discord.py
+                                          (filtro: 9 → 10)
+```
+
+O filtro do Pipe é quem decide tudo, e por isso a Lambda do Discord não guarda
+estado nenhum: ela só notifica.
+
+```json
+{
+  "eventName": ["MODIFY"],
+  "dynamodb": {
+    "OldImage": { "clicks": { "N": ["9"]  } },
+    "NewImage": { "clicks": { "N": ["10"] } }
+  }
+}
+```
+
+Duas igualdades exatas sobre strings — sem comparador numérico, que no registro
+do stream não funcionaria porque o número vem como string (`{"N": "10"}`).
+
+**Não ponha `eventSourceARN` no filtro.** O console sugere, mas o valor que
+chega no registro é o ARN do **stream** (`.../table/X/stream/<timestamp>`), e
+não o da tabela. Comparação exata com o ARN da tabela nunca casa, e o pipe
+simplesmente nunca dispara — sem erro, sem log, sem nada.
+
+A fragilidade honesta: isso depende de `clicks` subir de 1 em 1. Se alguém
+agrupar o incremento no contador, o valor pula de 7 para 13, o par 9→10 nunca
+existe e nada acontece. A versão à prova de salto troca os valores por
+`OldImage` em `["0".."9"]` e `NewImage` com `anything-but` da mesma lista.
+
+O webhook fica no **Parameter Store** como `SecureString` (criptografado com
+KMS, gratuito no tier padrão), não em variável de ambiente — variável de
+ambiente de Lambda aparece em texto puro para quem abre a função no console.
+A `discord.py` guarda o valor em cache de módulo: a consulta acontece uma vez
+por cold start, não uma por mensagem.
+
 ## Pontos em que a aula costuma travar
 
 - **CORS.** O site é servido de `http://...s3-website...` e chama

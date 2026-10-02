@@ -77,12 +77,11 @@ def _criar(event):
 
 
 def _listar(event):
-    # Scan varre a tabela inteira. Serve para o volume de uma aula, mas em
-    # produção o certo seria uma GSI (por createdAt) e um Query em cima dela.
+    # Scan varre a tabela inteira
     itens = tabela.scan().get("Items", [])
 
     # Número no DynamoDB volta como Decimal, e json.dumps não serializa
-    # Decimal — sem os int() aqui a resposta quebra com TypeError e vira 500.
+    # Decimal, sem os int() aqui a resposta quebra com TypeError e vira 500.
     links = sorted(
         ({"shortId": i["shortId"], "longUrl": i["longUrl"],
           "clicks": int(i.get("clicks", 0)), "createdAt": int(i.get("createdAt", 0))}
@@ -109,7 +108,7 @@ def _redirecionar(event):
 
     # 302, não 301. O 301 é permanente e o navegador guarda em cache: o
     # segundo clique no mesmo link não voltaria à API e o contador pararia
-    # de subir — exatamente o que queremos demonstrar.
+    # de subir, exatamente o que queremos demonstrar.
     return {"statusCode": 302, "headers": {"Location": item["longUrl"]}}
 
 
@@ -123,7 +122,7 @@ ROTAS = {
 }
 
 
-def lambda_handler(event, context):
+def handler(event, ctx):
     tratar = ROTAS.get(event.get("routeKey"))
     if not tratar:
         return _resposta(404, {"error": f"Rota não tratada: {event.get('routeKey')}"})
