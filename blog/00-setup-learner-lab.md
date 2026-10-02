@@ -219,8 +219,8 @@ Se os cinco responderem, você está pronto.
 
 ## Ao terminar o minicurso
 
-O laboratório expira sozinho, mas é bom hábito apagar o que você criou — e,
-numa conta AWS própria, é a diferença entre centavos e uma surpresa na fatura. O
+O laboratório expira sozinho, mas é bom hábito apagar o que você criou. Numa
+conta AWS própria isso é a diferença entre centavos e uma surpresa na fatura. O
 último artigo da série tem a lista completa, na ordem certa.
 
 **Próximo:** [1. O site sem servidor](01-s3.md)

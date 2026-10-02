@@ -36,7 +36,7 @@ Independente do resto da série, e reaproveitável em qualquer minicurso que use
 Learner Lab. **Só é necessário a partir do artigo 8**: os artigos 1 a 7 são
 todos no console e pedem apenas o navegador.
 
-### Parte 1 — no console, clique a clique
+### Parte 1: no console, clique a clique
 
 | # | Artigo | Serviço | Ao final você tem |
 |---|---|---|---|
@@ -48,7 +48,7 @@ todos no console e pedem apenas o navegador.
 | 6 | [Reagindo a mudanças no banco](06-streams-pipes.md) | DynamoDB Streams · EventBridge Pipes | detecção do marco de 10 cliques, sem código |
 | 7 | [Avisando o mundo](07-sns-parameter-store.md) | SNS · Parameter Store | parabéns chegando no Discord |
 
-### Parte 2 — a mesma aplicação, agora em código
+### Parte 2: a mesma aplicação, agora em código
 
 *(em escrita)*
 
