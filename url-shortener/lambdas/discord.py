@@ -5,7 +5,7 @@ Não decide nada: quem decidiu foi o filtro do EventBridge Pipe, que só deixa
 passar o registro em que `clicks` cruzou de 9 para 10. Esta função notifica,
 e é só isso que ela faz.
 
-Variável de ambiente: WEBHOOK_PARAM — nome ou ARN do parâmetro
+Variável de ambiente: WEBHOOK_PARAM, nome ou ARN do parâmetro
     (ex.: /labs/discord-webhook, ou o ARN completo; get_parameter aceita os dois)
 Permissão necessária na role: ssm:GetParameter (e kms:Decrypt, para SecureString)
 """
