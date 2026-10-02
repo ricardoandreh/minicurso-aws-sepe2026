@@ -27,24 +27,30 @@ Antes de subir, editar uma linha:
 const API_URL = "https://SEU-API-ID.execute-api.us-east-1.amazonaws.com";
 ```
 
-## As quatro Lambdas
+## As duas Lambdas
 
 Código em `lambdas/`. Runtime Python 3.13, um arquivo por função.
 
-| Função | Gatilho | Variáveis de ambiente | Permissão na role |
-|---|---|---|---|
-| `create.py` | `POST /shorten` | `TABELA_NOME` | escrever no DynamoDB |
-| `redirect.py` | `GET /{shortId}` | `TABELA_NOME`, `FILA_URL` | ler no DynamoDB, enviar no SQS |
-| `contador.py` | fila SQS | `TABELA_NOME` | escrever no DynamoDB |
-| `stats.py` | `GET /{shortId}/stats` | `TABELA_NOME` | ler no DynamoDB |
+| Função | Gatilho | Rotas / origem |
+|---|---|---|
+| `api.py` | HTTP, síncrono | `POST /shorten`, `GET /urls`, `GET /{shortId}` |
+| `contador.py` | fila SQS, assíncrono | mensagens publicadas pelo redirect |
 
-Todas declaram `def lambda_handler(...)`, que é exatamente o que o console
-espera por padrão (`lambda_function.lambda_handler`) — assim não há passo de
-trocar o Handler nas configurações, que é onde o primeiro teste costuma falhar.
+Ambas usam `TABELA_NOME` e `FILA_URL`, e `def lambda_handler(...)` — que é o
+que o console espera por padrão, então não há passo de trocar o Handler, onde o
+primeiro teste costuma falhar.
 
-Nada de nome de tabela ou URL de fila embutido no código: tudo por variável de
-ambiente. É mais trabalho no console de propósito — é esse trabalho que o
-`link()` do SST faz desaparecer na segunda metade da aula.
+**Por que as três rotas numa função só.** O critério para separar não é a URL,
+é o **gatilho e o ciclo de vida**. As três rotas reagem ao mesmo gatilho (HTTP,
+síncrono), escalam juntas e falham juntas — são uma função. O contador reage a
+outro gatilho (fila, assíncrono), tem outro perfil de falha e pode ser retentado
+sem ninguém esperando do outro lado — por isso é separado. Na prática isso
+também corta pela metade o tempo de console no hands-on.
+
+O despacho é por `routeKey`, não por método: `GET /urls` e `GET /{shortId}` são
+os dois GET. O payload 2.0 entrega a rota inteira já resolvida
+(`"GET /{shortId}"`, com as chaves), então o dicionário `ROTAS` no topo do
+arquivo é um espelho literal das rotas da API.
 
 ### Decisões que valem ser explicadas em sala
 

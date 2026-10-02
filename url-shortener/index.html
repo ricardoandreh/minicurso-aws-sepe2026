@@ -171,21 +171,52 @@ h1 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; }
 .msg[hidden] { display: none; }
 .msg-dica { margin: 4px 0 0; font-size: 12px; color: var(--colorNeutralForeground2); }
 
-.resultado { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--colorNeutralStroke2); }
-.resultado[hidden] { display: none; }
-.linha { display: flex; align-items: center; gap: 8px; }
-.linha + .linha { margin-top: 16px; }
-.valor {
-  flex: 1; min-width: 0; padding: 6px 8px;
-  font-family: var(--fontFamilyMonospace); font-size: 13px;
+.lista-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 24px 0 12px; padding-top: 20px;
+  border-top: 1px solid var(--colorNeutralStroke2);
+}
+.lista-header h2 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; }
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.item {
+  padding: 12px;
   border: 1px solid var(--colorNeutralStroke2);
   border-radius: var(--borderRadiusMedium);
-  background: var(--colorNeutralBackground3);
+  transition: border-color var(--durationFaster) ease;
+}
+.item:hover { border-color: var(--colorNeutralStroke1); }
+.item-topo { display: flex; align-items: center; gap: 8px; }
+.item-link {
+  flex: 1; min-width: 0;
+  font-family: var(--fontFamilyMonospace); font-size: 14px; font-weight: 600;
+  color: var(--colorBrandForeground1); text-decoration: none;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.cliques {
-  flex: 1; font-size: 24px; line-height: 32px; font-weight: 600;
+.item-link:hover { text-decoration: underline; }
+.item-url {
+  margin: 4px 0 0; font-size: 12px; line-height: 16px;
+  color: var(--colorNeutralForeground3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Badge do Fluent 2 (appearance="tint") */
+.badge {
+  flex-shrink: 0; min-width: 28px; text-align: center;
+  padding: 2px 8px; font-size: 12px; line-height: 16px; font-weight: 600;
   font-variant-numeric: tabular-nums;
+  border-radius: 10000px;
+  background: var(--colorBrandBackground2); color: var(--colorBrandForeground1);
+}
+.btn-mini {
+  flex-shrink: 0; height: 24px; padding: 0 8px; font-size: 12px;
+  background: none; color: var(--colorNeutralForeground2);
+  border: 1px solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusMedium);
+  font-family: inherit; font-weight: 600; cursor: pointer;
+}
+.btn-mini:hover { background: var(--colorSubtleBackgroundHover); }
+.vazio {
+  padding: 24px 0; text-align: center;
+  color: var(--colorNeutralForeground3); font-size: 14px;
 }
 .ok { color: var(--colorPaletteGreenForeground1); }
 </style>
@@ -221,22 +252,11 @@ h1 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; }
     <p class="msg-dica" id="erro-dica" hidden></p>
   </div>
 
-  <section class="resultado" id="resultado" hidden>
-    <div class="field">
-      <span class="label">Link curto</span>
-      <div class="linha">
-        <span class="valor" id="curto"></span>
-        <button type="button" class="btn btn-subtle" id="btn-copiar">Copiar</button>
-      </div>
-    </div>
-    <div class="field" style="margin-top:16px">
-      <span class="label">Cliques</span>
-      <div class="linha">
-        <span class="cliques" id="cliques">0</span>
-        <button type="button" class="btn btn-subtle" id="btn-atualizar">Atualizar</button>
-      </div>
-    </div>
-  </section>
+  <div class="lista-header">
+    <h2>Links cadastrados</h2>
+    <button type="button" class="btn btn-subtle" id="btn-atualizar">Atualizar</button>
+  </div>
+  <ul id="lista"></ul>
 </main>
 
 <script>
@@ -246,7 +266,6 @@ const API_URL = "https://SEU-API-ID.execute-api.us-east-1.amazonaws.com";
 // ─────────────────────────────────────────────────────────────
 
 const $ = (id) => document.getElementById(id);
-let shortIdAtual = null;
 
 function erro(texto, dica) {
   $("erro-texto").textContent = texto;
@@ -266,55 +285,13 @@ function mensagemDeFalha(e) {
   return [e.message, null];
 }
 
-$("form").addEventListener("submit", async (evento) => {
-  evento.preventDefault();
-  const botao = $("btn-encurtar");
-  limparErro();
-  botao.disabled = true;
-  botao.textContent = "Encurtando...";
+async function pedir(caminho, opcoes) {
+  const resposta = await fetch(`${API_URL}${caminho}`, opcoes);
+  if (!resposta.ok) throw new Error(`A API respondeu HTTP ${resposta.status}`);
+  return resposta.json();
+}
 
-  try {
-    const resposta = await fetch(`${API_URL}/shorten`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: $("url").value.trim() }),
-    });
-    if (!resposta.ok) throw new Error(`A API respondeu HTTP ${resposta.status}`);
-
-    const dados = await resposta.json();
-    shortIdAtual = dados.shortId;
-    $("curto").textContent = dados.shortUrl;
-    $("curto").title = dados.shortUrl;
-    $("cliques").textContent = "0";
-    $("resultado").hidden = false;
-  } catch (e) {
-    erro(...mensagemDeFalha(e));
-  } finally {
-    botao.disabled = false;
-    botao.textContent = "Encurtar";
-  }
-});
-
-$("btn-atualizar").addEventListener("click", async () => {
-  if (!shortIdAtual) return;
-  const botao = $("btn-atualizar");
-  limparErro();
-  botao.disabled = true;
-  try {
-    const resposta = await fetch(`${API_URL}/${shortIdAtual}/stats`);
-    if (!resposta.ok) throw new Error(`A API respondeu HTTP ${resposta.status}`);
-    const dados = await resposta.json();
-    $("cliques").textContent = dados.clicks ?? 0;
-  } catch (e) {
-    erro(...mensagemDeFalha(e));
-  } finally {
-    botao.disabled = false;
-  }
-});
-
-$("btn-copiar").addEventListener("click", async () => {
-  const botao = $("btn-copiar");
-  const texto = $("curto").textContent;
+async function copiar(texto, botao) {
   try {
     // navigator.clipboard só existe em origem segura, e o site hospedado no
     // S3 website hosting é HTTP puro — daí o fallback.
@@ -329,16 +306,101 @@ $("btn-copiar").addEventListener("click", async () => {
       document.execCommand("copy");
       campo.remove();
     }
+    const antes = botao.textContent;
     botao.textContent = "Copiado";
-    botao.classList.add("ok");
-    setTimeout(() => {
-      botao.textContent = "Copiar";
-      botao.classList.remove("ok");
-    }, 1500);
+    setTimeout(() => (botao.textContent = antes), 1500);
   } catch {
     erro("Não foi possível copiar.", "Selecione o texto e copie manualmente.");
   }
+}
+
+function criarItem(link) {
+  const url = `${API_URL}/${link.shortId}`;
+
+  const item = document.createElement("li");
+  item.className = "item";
+
+  const topo = document.createElement("div");
+  topo.className = "item-topo";
+
+  // Abre em outra aba de propósito: clicar aqui passa pelo redirect e gera
+  // um clique de verdade — é assim que se demonstra o contador subindo.
+  const ancora = document.createElement("a");
+  ancora.className = "item-link";
+  ancora.href = url;
+  ancora.target = "_blank";
+  ancora.rel = "noopener";
+  ancora.textContent = link.shortId;
+
+  const cliques = document.createElement("span");
+  cliques.className = "badge";
+  cliques.title = "cliques";
+  cliques.textContent = link.clicks;
+
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = "btn-mini";
+  botao.textContent = "Copiar";
+  botao.addEventListener("click", () => copiar(url, botao));
+
+  topo.append(ancora, cliques, botao);
+
+  // textContent, nunca innerHTML: a URL longa veio de quem digitou.
+  const longa = document.createElement("p");
+  longa.className = "item-url";
+  longa.textContent = link.longUrl;
+  longa.title = link.longUrl;
+
+  item.append(topo, longa);
+  return item;
+}
+
+async function carregar() {
+  const botao = $("btn-atualizar");
+  botao.disabled = true;
+  try {
+    const { links } = await pedir("/urls");
+    $("lista").replaceChildren();
+    if (links.length === 0) {
+      const vazio = document.createElement("li");
+      vazio.className = "vazio";
+      vazio.textContent = "Nenhum link ainda.";
+      $("lista").append(vazio);
+    } else {
+      $("lista").append(...links.map(criarItem));
+    }
+    limparErro();
+  } catch (e) {
+    erro(...mensagemDeFalha(e));
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+$("form").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  const botao = $("btn-encurtar");
+  limparErro();
+  botao.disabled = true;
+  botao.textContent = "Encurtando...";
+  try {
+    await pedir("/shorten", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: $("url").value.trim() }),
+    });
+    $("url").value = "";
+    await carregar();
+  } catch (e) {
+    erro(...mensagemDeFalha(e));
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Encurtar";
+  }
 });
+
+$("btn-atualizar").addEventListener("click", carregar);
+carregar();
 </script>
 </body>
 </html>

@@ -56,7 +56,7 @@ aws iam put-role-policy --role-name "$ROLE" --policy-name AcessoAplicacao --poli
   \"Version\": \"2012-10-17\",
   \"Statement\": [
     {\"Effect\":\"Allow\",
-     \"Action\":[\"dynamodb:GetItem\",\"dynamodb:PutItem\",\"dynamodb:UpdateItem\"],
+     \"Action\":[\"dynamodb:GetItem\",\"dynamodb:PutItem\",\"dynamodb:UpdateItem\",\"dynamodb:Scan\"],
      \"Resource\":\"arn:aws:dynamodb:$REGIAO:$CONTA:table/$TABELA\"},
     {\"Effect\":\"Allow\",
      \"Action\":[\"sqs:SendMessage\",\"sqs:ReceiveMessage\",\"sqs:DeleteMessage\",\"sqs:GetQueueAttributes\"],
@@ -99,9 +99,9 @@ subir_lambda() {
 }
 
 info "Lambdas"
-subir_lambda url-shortener-create   create.py   10
-subir_lambda url-shortener-redirect redirect.py 10
-subir_lambda url-shortener-stats    stats.py    10
+# Duas funções, não quatro: as três rotas HTTP compartilham a mesma (despacham
+# por routeKey lá dentro), e o contador fica separado porque o gatilho é outro.
+subir_lambda url-shortener-api      api.py      10
 subir_lambda url-shortener-contador contador.py 15
 
 # gatilho da fila no contador
@@ -134,8 +134,16 @@ rota() {
   integ=$(aws apigatewayv2 create-integration --api-id "$API_ID" \
     --integration-type AWS_PROXY --integration-uri "$arn" --payload-format-version 2.0 \
     --query IntegrationId --output text)
-  if [ -z "$(aws apigatewayv2 get-routes --api-id "$API_ID" --query "Items[?RouteKey=='$chave'].RouteId" --output text)" ]; then
+  # Se a rota já existe, APONTA ela para a integração nova. Só criar quando
+  # falta deixaria a rota velha presa numa integração órfã — e o sintoma é um
+  # 500 do API Gateway sem nenhum log na Lambda, porque ela nem é invocada.
+  local id_rota
+  id_rota=$(aws apigatewayv2 get-routes --api-id "$API_ID" --query "Items[?RouteKey=='$chave'].RouteId" --output text)
+  if [ -z "$id_rota" ]; then
     aws apigatewayv2 create-route --api-id "$API_ID" --route-key "$chave" \
+      --target "integrations/$integ" >/dev/null
+  else
+    aws apigatewayv2 update-route --api-id "$API_ID" --route-id "$id_rota" \
       --target "integrations/$integ" >/dev/null
   fi
   # o API Gateway precisa de permissão explícita para invocar a função
@@ -144,9 +152,9 @@ rota() {
     --source-arn "arn:aws:execute-api:$REGIAO:$CONTA:$API_ID/*/*" >/dev/null 2>&1 || true
   echo "  $chave -> $fn"
 }
-rota "POST /shorten"          url-shortener-create
-rota "GET /{shortId}"         url-shortener-redirect
-rota "GET /{shortId}/stats"   url-shortener-stats
+rota "POST /shorten"          url-shortener-api
+rota "GET /urls"              url-shortener-api
+rota "GET /{shortId}"         url-shortener-api
 
 # a HTTP API faz auto-deploy no stage $default, que não entra no caminho da URL
 if ! existe aws apigatewayv2 get-stage --api-id "$API_ID" --stage-name '$default'; then
