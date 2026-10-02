@@ -510,11 +510,19 @@ async function carregar({ esqueleto = false } = {}) {
 // depois, porque passa pela fila. Dois gatilhos cobrem os dois jeitos de
 // usar: voltar para esta aba (o caso comum) e ficar nela, quando o navegador
 // abre o link em segundo plano.
+//
+// Medido no Learner Lab, a cadeia clique → fila → contador → tabela leva de
+// 920ms a 1,1s. Um segundo fica no limite, então tentamos de novo meio segundo
+// depois: a segunda chamada é barata e cobre a vez em que a primeira chegou
+// cedo demais.
 let timerClique = null;
 
 function agendarAtualizacao() {
   clearTimeout(timerClique);
-  timerClique = setTimeout(() => carregar(), 2000);
+  timerClique = setTimeout(() => {
+    carregar();
+    timerClique = setTimeout(() => carregar(), 1500);
+  }, 1000);
 }
 
 document.addEventListener("visibilitychange", () => {
