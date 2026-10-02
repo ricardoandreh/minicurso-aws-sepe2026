@@ -2,566 +2,232 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Encurtador de URL serverless na AWS: S3, API Gateway, Lambda, DynamoDB e SQS. Projeto do minicurso do IFC.">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="Encurtador de URL serverless na AWS: S3, API Gateway, Lambda, DynamoDB, SQS, Streams, EventBridge Pipes e SNS. Projeto do minicurso do IFC.">
 <title>Encurtador de URL</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232d843b'/%3E%3Cpath d='M10 14a4 4 0 0 0 5.66 0l2-2A4 4 0 0 0 12 6.34l-1 1M14 10a4 4 0 0 0-5.66 0l-2 2A4 4 0 0 0 12 17.66l1-1' fill='none' stroke='white' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
-/* Tokens do Microsoft Fluent 2 (nomes conforme @fluentui/react-components) */
-:root {
-  color-scheme: light dark;
-  --colorNeutralBackground1: #ffffff;
-  --colorNeutralBackground3: #f5f5f5;
-  --colorSubtleBackgroundHover: #f5f5f5;
-  --colorNeutralForeground1: #242424;
-  --colorNeutralForeground2: #424242;
-  --colorNeutralForeground3: #616161;
-  --colorNeutralForeground4: #707070;
-  --colorNeutralForegroundDisabled: #bdbdbd;
-  --colorNeutralBackgroundDisabled: #f0f0f0;
-  --colorNeutralStroke1: #d1d1d1;
-  --colorNeutralStroke2: #e0e0e0;
-  --colorNeutralStrokeAccessible: #616161;
-  /* Marca: paleta do Instituto Federal Catarinense.
-     O verde institucional puro (#3cb04f) tem só 2,79:1 com texto branco e
-     reprova no AA da WCAG, que pede 4,5:1. Os tons de preenchimento abaixo são
-     esse mesmo verde escurecido até passar, mantendo a matiz. Os tons claros
-     (#e3f7e3) e o vermelho (#ca2027) vêm direto da paleta oficial. */
-  --ifcVerde: #3cb04f;              /* verde institucional, referência */
-  --ifcVermelho: #ca2027;           /* vermelho institucional */
-  --colorBrandBackground: #2d843b;        /* 4,69:1 com branco */
-  --colorBrandBackgroundHover: #2a7b37;   /* 5,27:1 */
-  --colorBrandBackgroundPressed: #246a2f; /* 6,61:1 */
-  --colorBrandBackground2: #e3f7e3;       /* tom claro da paleta oficial */
-  --colorBrandForeground1: #277233;       /* 5,93:1 sobre branco */
-  --colorBrandStroke1: #2d843b;
-  --colorPaletteRedForeground1: #b61d23;  /* vermelho IFC escurecido, 6,59:1 */
-  --colorPaletteRedBackground1: #fdf2f3;
-  --colorPaletteGreenForeground1: #246a2f;
-  --colorStrokeFocus2: #000000;
-  --shadow2: 0 1px 2px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
-  --borderRadiusMedium: 4px;
-  --borderRadiusXLarge: 8px;
-  --durationFaster: 100ms;
-  --durationNormal: 200ms;
-  --curveDecelerateMid: cubic-bezier(.1,.9,.2,1);
-  --fontFamilyBase: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI",
-    -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --fontFamilyMonospace: "Cascadia Mono", ui-monospace, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --colorNeutralBackground1: #292929;
-    --colorNeutralBackground3: #141414;
-    --colorSubtleBackgroundHover: #383838;
-    --colorNeutralForeground1: #ffffff;
-    --colorNeutralForeground2: #d6d6d6;
-    --colorNeutralForeground3: #adadad;
-    --colorNeutralForeground4: #999999;
-    --colorNeutralForegroundDisabled: #5c5c5c;
-    --colorNeutralBackgroundDisabled: #1f1f1f;
-    --colorNeutralStroke1: #666666;
-    --colorNeutralStroke2: #525252;
-    --colorNeutralStrokeAccessible: #adadad;
-    --colorBrandBackground: #2d843b;
-    --colorBrandBackgroundHover: #308d3f;
-    --colorBrandBackgroundPressed: #246a2f;
-    --colorBrandBackground2: #16331a;
-    --colorBrandForeground1: #63c072;       /* 6,45:1 sobre #292929 */
-    --colorBrandStroke1: #63c072;
-    --colorPaletteRedForeground1: #ee7a7f;
-    --colorPaletteRedBackground1: #3b1113;
-    --colorPaletteGreenForeground1: #63c072;
-    --colorStrokeFocus2: #ffffff;
-    --shadow2: 0 1px 2px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.24);
-  }
-}
-
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  min-height: 100vh;
-  display: flex;
-  /* Ancorado no topo em vez de centralizado: com o card alto, centralizar
-     empurrava tudo para o meio e sobrava vazio em cima e embaixo. */
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 16px;
-  background: var(--colorNeutralBackground3);
-  color: var(--colorNeutralForeground1);
-  font-family: var(--fontFamilyBase);
-  font-size: 14px;
-  line-height: 20px;
-  -webkit-font-smoothing: antialiased;
-}
-:where(button, input):focus-visible {
-  outline: 2px solid var(--colorStrokeFocus2);
-  outline-offset: 1px;
-}
-
-/* Faixa do vermelho ao verde, o elemento gráfico da identidade do IFC.
-   Fica no topo do card em vez de ocupar a página inteira: dá a assinatura
-   visual sem competir com o conteúdo. */
-.card::before {
-  content: "";
-  display: block;
-  height: 4px;
-  margin: -24px -24px 20px;
-  border-radius: var(--borderRadiusXLarge) var(--borderRadiusXLarge) 0 0;
-  background: linear-gradient(
-    90deg,
-    var(--ifcVermelho) 0 22%,
-    #349a46 22%, #3cb04f 34%, #62ca71 48%,
-    #8eda96 62%, #c2ecc4 78%, #e9f9e9 92%, #f8fef8 100%
-  );
-}
-
-.card {
-  width: 100%;
-  max-width: 460px;
-  padding: 24px;
-  overflow: hidden;
-  background: var(--colorNeutralBackground1);
-  border: 1px solid var(--colorNeutralStroke2);
-  border-radius: var(--borderRadiusXLarge);
-  box-shadow: var(--shadow2);
-}
-.header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-.header-icon {
-  display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; flex-shrink: 0;
-  border-radius: var(--borderRadiusXLarge);
-  background: var(--colorBrandBackground2);
-  color: var(--colorBrandForeground1);
-}
-h1 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; }
-.sub { margin: 0; font-size: 12px; line-height: 16px; color: var(--colorNeutralForeground3); }
-
-.field { display: flex; flex-direction: column; gap: 4px; }
-.label { font-size: 14px; font-weight: 600; }
-
-/* Input do Fluent 2: borda inferior mais escura em repouso, e no foco um
-   traço de 2px na cor da marca que cresce a partir do centro. */
-.control {
-  position: relative; display: flex; align-items: center;
-  padding: 0 8px; height: 32px;
-  background: var(--colorNeutralBackground1);
-  border: 1px solid var(--colorNeutralStroke1);
-  border-bottom-color: var(--colorNeutralStrokeAccessible);
-  border-radius: var(--borderRadiusMedium);
-}
-.control::after {
-  content: ""; position: absolute; left: -1px; right: -1px; bottom: -1px;
-  height: 2px; background: var(--colorBrandStroke1);
-  border-bottom-left-radius: var(--borderRadiusMedium);
-  border-bottom-right-radius: var(--borderRadiusMedium);
-  transform: scaleX(0);
-  transition: transform var(--durationNormal) var(--curveDecelerateMid);
-}
-.control:focus-within::after { transform: scaleX(1); }
-.control input {
-  flex: 1; min-width: 0; padding: 0;
-  font: inherit; color: inherit; background: none; border: none; outline: none;
-}
-.control input::placeholder { color: var(--colorNeutralForeground4); }
-
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  height: 32px; padding: 0 12px;
-  font: inherit; font-weight: 600;
-  border: 1px solid transparent; border-radius: var(--borderRadiusMedium);
-  cursor: pointer;
-  transition: background-color var(--durationFaster) ease;
-}
-.btn:disabled {
-  cursor: not-allowed;
-  background: var(--colorNeutralBackgroundDisabled);
-  color: var(--colorNeutralForegroundDisabled);
-}
-.btn-primary {
-  width: 100%; margin-top: 16px;
-  background: var(--colorBrandBackground); color: #fff;
-}
-.btn-primary:hover:not(:disabled) { background: var(--colorBrandBackgroundHover); }
-.btn-primary:active:not(:disabled) { background: var(--colorBrandBackgroundPressed); }
-.btn-subtle {
-  background: none; color: var(--colorNeutralForeground2);
-  border-color: var(--colorNeutralStroke1);
-}
-.btn-subtle:hover:not(:disabled) { background: var(--colorSubtleBackgroundHover); }
-
-.msg {
-  margin-top: 16px; padding: 8px 12px;
-  border: 1px solid var(--colorPaletteRedForeground1);
-  background: var(--colorPaletteRedBackground1);
-  border-radius: var(--borderRadiusMedium);
-}
-.msg[hidden] { display: none; }
-.msg-dica { margin: 4px 0 0; font-size: 12px; color: var(--colorNeutralForeground2); }
-
-.lista-header {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin: 24px 0 12px; padding-top: 20px;
-  border-top: 1px solid var(--colorNeutralStroke2);
-}
-.lista-header h2 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; }
-/* Altura fixa: a lista rola por dentro em vez de empurrar o card para baixo.
-   Assim o cartão não muda de tamanho conforme você cria links, nem pula entre
-   o estado de carregando e o de carregado. */
-ul {
-  list-style: none; margin: 0; padding: 0;
-  display: flex; flex-direction: column; gap: 8px;
-  /* A altura varia com a janela, nunca com o conteúdo: é isso que mantém o
-     card parado enquanto você cria links. */
-  height: clamp(280px, 52vh, 460px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-.item {
-  flex-shrink: 0;
-  padding: 12px;
-  border: 1px solid var(--colorNeutralStroke2);
-  border-radius: var(--borderRadiusMedium);
-  transition: border-color var(--durationFaster) ease;
-}
-.item:hover { border-color: var(--colorNeutralStroke1); }
-
-/* O contador fica ao lado do hash, não na borda direita: encostado na direita
-   ele era empurrado por qualquer mudança de largura do botão. */
-.item-topo { display: flex; align-items: center; gap: 8px; }
-.item-link {
-  flex-shrink: 0;
-  font-family: var(--fontFamilyMonospace); font-size: 14px; font-weight: 600;
-  color: var(--colorBrandForeground1); text-decoration: none;
-}
-.item-link:hover { text-decoration: underline; }
-.item-espaco { flex: 1; min-width: 0; }
-.item-url {
-  margin: 4px 0 0; font-size: 12px; line-height: 16px;
-  color: var(--colorNeutralForeground3);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* Badge do Fluent 2 (appearance="tint") */
-.badge {
-  flex-shrink: 0; min-width: 24px; text-align: center;
-  padding: 2px 8px; font-size: 12px; line-height: 16px; font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  border-radius: 10000px;
-  background: var(--colorBrandBackground2); color: var(--colorBrandForeground1);
-}
-
-/* Botão de ícone: largura fixa, então trocar o desenho de copiar para o visto
-   não mexe em nada ao redor. */
-.btn-icone {
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; padding: 0;
-  background: none; color: var(--colorNeutralForeground3);
-  border: 1px solid var(--colorNeutralStroke1);
-  border-radius: var(--borderRadiusMedium);
-  cursor: pointer;
-  transition: background-color var(--durationFaster) ease,
-              color var(--durationFaster) ease;
-}
-.btn-icone:hover { background: var(--colorSubtleBackgroundHover); color: var(--colorNeutralForeground1); }
-.btn-icone.copiado { color: var(--colorBrandForeground1); border-color: var(--colorBrandStroke1); }
-
-.vazio {
-  margin: auto 0; padding: 24px 0; text-align: center;
-  color: var(--colorNeutralForeground3); font-size: 14px;
-}
-
-/* Esqueleto de carregamento, com as mesmas medidas do item real para a lista
-   não dar um salto quando os dados chegam. */
-.skel {
-  flex-shrink: 0;
-  padding: 12px;
-  border: 1px solid var(--colorNeutralStroke2);
-  border-radius: var(--borderRadiusMedium);
-}
-.skel-barra {
-  position: relative;
-  overflow: hidden;
-  height: 14px;
-  border-radius: var(--borderRadiusMedium);
-  background: var(--colorNeutralBackground3);
-}
-.skel-barra + .skel-barra { height: 10px; margin-top: 8px; }
-
-/* O brilho anda com `transform`, não com `background-position`. Só transform e
-   opacity são compostos fora da main thread; animar background-position obriga
-   o navegador a repintar a cada quadro. */
-.skel-barra::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg, transparent, var(--colorNeutralStroke2), transparent);
-  transform: translateX(-100%);
-  animation: brilho 1.4s ease-in-out infinite;
-}
-@keyframes brilho {
-  to { transform: translateX(100%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .skel-barra { animation: none; }
-}
-.ok { color: var(--colorPaletteGreenForeground1); }
+:root{color-scheme:light dark;
+--ifcVerde:#3cb04f;--ifcVermelho:#ca2027;
+--colorNeutralBackground1:#fff;--colorNeutralBackground3:#f5f5f5;--colorSubtleBackgroundHover:#f5f5f5;
+--colorNeutralForeground1:#242424;--colorNeutralForeground2:#424242;--colorNeutralForeground3:#616161;--colorNeutralForeground4:#707070;
+--colorNeutralForegroundDisabled:#bdbdbd;--colorNeutralBackgroundDisabled:#f0f0f0;
+--colorNeutralStroke1:#d1d1d1;--colorNeutralStroke2:#e0e0e0;--colorNeutralStrokeAccessible:#616161;
+--colorBrandBackground:#2d843b;--colorBrandBackgroundHover:#2a7b37;--colorBrandBackgroundPressed:#246a2f;
+--colorBrandBackground2:#e3f7e3;--colorBrandForeground1:#277233;--colorBrandStroke1:#2d843b;
+--colorPaletteRedForeground1:#b61d23;--colorPaletteRedBackground1:#fdf2f3;--colorStrokeFocus2:#000;
+--shadow2:0 1px 2px rgba(0,0,0,.14),0 0 2px rgba(0,0,0,.12);
+--radM:4px;--radL:8px;--dFast:100ms;--dNorm:200ms;--curve:cubic-bezier(.1,.9,.2,1);
+--fonte:"Segoe UI Variable Text","Segoe UI Variable","Segoe UI",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+--mono:"Cascadia Mono",ui-monospace,Consolas,monospace}
+@media(prefers-color-scheme:dark){:root{
+--colorNeutralBackground1:#292929;--colorNeutralBackground3:#141414;--colorSubtleBackgroundHover:#383838;
+--colorNeutralForeground1:#fff;--colorNeutralForeground2:#d6d6d6;--colorNeutralForeground3:#adadad;--colorNeutralForeground4:#999;
+--colorNeutralForegroundDisabled:#5c5c5c;--colorNeutralBackgroundDisabled:#1f1f1f;
+--colorNeutralStroke1:#666;--colorNeutralStroke2:#525252;--colorNeutralStrokeAccessible:#adadad;
+--colorBrandBackground:#2d843b;--colorBrandBackgroundHover:#308d3f;--colorBrandBackgroundPressed:#246a2f;
+--colorBrandBackground2:#16331a;--colorBrandForeground1:#63c072;--colorBrandStroke1:#63c072;
+--colorPaletteRedForeground1:#ee7a7f;--colorPaletteRedBackground1:#3b1113;--colorStrokeFocus2:#fff;
+--shadow2:0 1px 2px rgba(0,0,0,.28),0 0 2px rgba(0,0,0,.24)}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;
+background:var(--colorNeutralBackground3);color:var(--colorNeutralForeground1);
+font-family:var(--fonte);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+:where(a,button,input):focus-visible{outline:2px solid var(--colorStrokeFocus2);outline-offset:1px}
+.card{width:100%;max-width:460px;padding:24px;overflow:hidden;background:var(--colorNeutralBackground1);
+border:1px solid var(--colorNeutralStroke2);border-radius:var(--radL);box-shadow:var(--shadow2)}
+.card::before{content:"";display:block;height:4px;margin:-24px -24px 20px;border-radius:var(--radL) var(--radL) 0 0;
+background:linear-gradient(90deg,var(--ifcVermelho) 0 22%,#349a46 22%,#3cb04f 34%,#62ca71 48%,#8eda96 62%,#c2ecc4 78%,#e9f9e9 92%,#f8fef8 100%)}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.header-icon{display:flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;
+border-radius:var(--radL);background:var(--colorBrandBackground2);color:var(--colorBrandForeground1)}
+h1{margin:0;font-size:20px;line-height:26px;font-weight:600}
+.sub{margin:0;font-size:12px;line-height:16px;color:var(--colorNeutralForeground3)}
+.field{display:flex;flex-direction:column;gap:4px}
+.label{font-size:14px;font-weight:600}
+.control{position:relative;display:flex;align-items:center;padding:0 8px;height:32px;
+background:var(--colorNeutralBackground1);border:1px solid var(--colorNeutralStroke1);
+border-bottom-color:var(--colorNeutralStrokeAccessible);border-radius:var(--radM)}
+.control::after{content:"";position:absolute;left:-1px;right:-1px;bottom:-1px;height:2px;
+background:var(--colorBrandStroke1);border-bottom-left-radius:var(--radM);border-bottom-right-radius:var(--radM);
+transform:scaleX(0);transition:transform var(--dNorm) var(--curve)}
+.control:focus-within::after{transform:scaleX(1)}
+.control input{flex:1;min-width:0;padding:0;font:inherit;color:inherit;background:none;border:none;outline:none}
+.control input::placeholder{color:var(--colorNeutralForeground4)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:32px;padding:0 12px;
+font:inherit;font-weight:600;border:1px solid transparent;border-radius:var(--radM);cursor:pointer;
+transition:background-color var(--dFast) ease}
+.btn:disabled{cursor:not-allowed;background:var(--colorNeutralBackgroundDisabled);color:var(--colorNeutralForegroundDisabled)}
+.btn-primary{width:100%;margin-top:16px;background:var(--colorBrandBackground);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--colorBrandBackgroundHover)}
+.btn-primary:active:not(:disabled){background:var(--colorBrandBackgroundPressed)}
+.btn-subtle{background:none;color:var(--colorNeutralForeground2);border-color:var(--colorNeutralStroke1)}
+.btn-subtle:hover:not(:disabled){background:var(--colorSubtleBackgroundHover)}
+.msg{margin-top:16px;padding:8px 12px;border:1px solid var(--colorPaletteRedForeground1);
+background:var(--colorPaletteRedBackground1);border-radius:var(--radM)}
+.msg[hidden]{display:none}
+.msg-dica{margin:4px 0 0;font-size:12px;color:var(--colorNeutralForeground2)}
+.lista-header{display:flex;align-items:center;justify-content:space-between;gap:12px;
+margin:24px 0 12px;padding-top:20px;border-top:1px solid var(--colorNeutralStroke2)}
+.lista-header h2{margin:0;font-size:16px;line-height:22px;font-weight:600}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;
+height:clamp(280px,52vh,460px);overflow-y:auto;scrollbar-width:thin}
+.item,.skel{flex-shrink:0;padding:12px;border:1px solid var(--colorNeutralStroke2);border-radius:var(--radM)}
+.item{transition:border-color var(--dFast) ease}
+.item:hover{border-color:var(--colorNeutralStroke1)}
+.item-topo{display:flex;align-items:center;gap:8px}
+.item-link{flex-shrink:0;font-family:var(--mono);font-size:14px;font-weight:600;
+color:var(--colorBrandForeground1);text-decoration:none}
+.item-link:hover{text-decoration:underline}
+.item-espaco{flex:1;min-width:0}
+.item-url{margin:4px 0 0;font-size:12px;line-height:16px;color:var(--colorNeutralForeground3);
+overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{flex-shrink:0;min-width:24px;text-align:center;padding:2px 8px;font-size:12px;line-height:16px;
+font-weight:600;font-variant-numeric:tabular-nums;border-radius:10000px;
+background:var(--colorBrandBackground2);color:var(--colorBrandForeground1)}
+.btn-icone{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;
+background:none;color:var(--colorNeutralForeground3);border:1px solid var(--colorNeutralStroke1);
+border-radius:var(--radM);cursor:pointer;transition:background-color var(--dFast) ease,color var(--dFast) ease}
+.btn-icone:hover{background:var(--colorSubtleBackgroundHover);color:var(--colorNeutralForeground1)}
+.btn-icone.copiado{color:var(--colorBrandForeground1);border-color:var(--colorBrandStroke1)}
+.vazio{margin:auto 0;padding:24px 0;text-align:center;color:var(--colorNeutralForeground3);font-size:14px}
+.skel-barra{position:relative;overflow:hidden;height:14px;border-radius:var(--radM);
+background:var(--colorNeutralBackground3)}
+.skel-barra+.skel-barra{height:10px;margin-top:8px}
+.skel-barra::after{content:"";position:absolute;inset:0;
+background:linear-gradient(90deg,transparent,var(--colorNeutralStroke2),transparent);
+transform:translateX(-100%);animation:brilho 1.4s ease-in-out infinite}
+@keyframes brilho{to{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){.skel-barra::after{animation:none}}
 </style>
 </head>
 <body>
 <main class="card">
-  <header class="header">
-    <div class="header-icon" aria-hidden="true">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path d="M10 14a4 4 0 0 0 5.66 0l3-3A4 4 0 0 0 13 5.34l-1.5 1.5M14 10a4 4 0 0 0-5.66 0l-3 3A4 4 0 0 0 11 18.66l1.5-1.5"
-              stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div>
-      <h1>Encurtador de URL</h1>
-      <p class="sub">S3 · API Gateway · Lambda · DynamoDB · SQS</p>
-    </div>
-  </header>
-
-  <form id="form">
-    <div class="field">
-      <label class="label" for="url">URL longa</label>
-      <div class="control">
-        <input type="url" id="url" required spellcheck="false"
-               placeholder="https://exemplo.com/uma-pagina-bem-longa">
-      </div>
-    </div>
-    <button type="submit" class="btn btn-primary" id="btn-encurtar">Encurtar</button>
-  </form>
-
-  <div class="msg" id="erro" role="alert" hidden>
-    <span id="erro-texto"></span>
-    <p class="msg-dica" id="erro-dica" hidden></p>
-  </div>
-
-  <div class="lista-header">
-    <h2>Links cadastrados</h2>
-    <button type="button" class="btn btn-subtle" id="btn-atualizar">Atualizar</button>
-  </div>
-  <ul id="lista"></ul>
+<header class="header">
+<div class="header-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M10 14a4 4 0 0 0 5.66 0l3-3A4 4 0 0 0 13 5.34l-1.5 1.5M14 10a4 4 0 0 0-5.66 0l-3 3A4 4 0 0 0 11 18.66l1.5-1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<div><h1>Encurtador de URL</h1><p class="sub">S3 · API Gateway · Lambda · DynamoDB · SQS · Streams · Pipes · SNS</p></div>
+</header>
+<form id="form">
+<div class="field"><label class="label" for="url">URL longa</label>
+<div class="control"><input type="url" id="url" required spellcheck="false" placeholder="https://exemplo.com/uma-pagina-bem-longa"></div></div>
+<button type="submit" class="btn btn-primary" id="btn-encurtar">Encurtar</button>
+</form>
+<div class="msg" id="erro" role="alert" hidden><span id="erro-texto"></span><p class="msg-dica" id="erro-dica" hidden></p></div>
+<div class="lista-header"><h2>Links cadastrados</h2>
+<button type="button" class="btn btn-subtle" id="btn-atualizar">Atualizar</button></div>
+<ul id="lista"></ul>
 </main>
-
 <script>
-// ─────────────────────────────────────────────────────────────
-// Cole aqui a Invoke URL da sua HTTP API, sem barra no final.
-const API_URL = "https://61m67seo17.execute-api.us-east-1.amazonaws.com";
-// ─────────────────────────────────────────────────────────────
+const API_URL="https://SEU-API-ID.execute-api.us-east-1.amazonaws.com";
 
-const $ = (id) => document.getElementById(id);
+const $=id=>document.getElementById(id);
+const ICONE_COPIAR=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M15 5.5A1.5 1.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A1.5 1.5 0 0 0 5.5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+const ICONE_FEITO=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+let carregando=false,timerClique=null;
 
-function erro(texto, dica) {
-  $("erro-texto").textContent = texto;
-  $("erro-dica").textContent = dica || "";
-  $("erro-dica").hidden = !dica;
-  $("erro").hidden = false;
-}
-const limparErro = () => ($("erro").hidden = true);
+function erro(texto,dica){$("erro-texto").textContent=texto;$("erro-dica").textContent=dica||"";$("erro-dica").hidden=!dica;$("erro").hidden=false}
+const limparErro=()=>$("erro").hidden=true;
 
-// `fetch` falha com TypeError tanto por rede quanto por CORS bloqueado —
-// e CORS é de longe o motivo mais provável aqui.
-function mensagemDeFalha(e) {
-  if (e instanceof TypeError) {
-    return ["Não foi possível falar com a API.",
-            "Confira o API_URL no index.html e se o CORS está configurado na HTTP API."];
-  }
-  return [e.message, null];
+function mensagemDeFalha(e){
+  return e instanceof TypeError
+    ? ["Não foi possível falar com a API.","Confira o API_URL no index.html e se o CORS está configurado na HTTP API."]
+    : [e.message,null];
 }
 
-async function pedir(caminho, opcoes) {
-  const resposta = await fetch(`${API_URL}${caminho}`, opcoes);
-  if (!resposta.ok) throw new Error(`A API respondeu HTTP ${resposta.status}`);
-  return resposta.json();
+async function pedir(caminho,opcoes){
+  const r=await fetch(`${API_URL}${caminho}`,opcoes);
+  if(!r.ok) throw new Error(`A API respondeu HTTP ${r.status}`);
+  return r.json();
 }
 
-const ICONE_COPIAR = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-  <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
-  <path d="M15 5.5A1.5 1.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A1.5 1.5 0 0 0 5.5 15"
-        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-</svg>`;
-const ICONE_FEITO = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-  <path d="M5 12.5 10 17.5 19 7" stroke="currentColor" stroke-width="2.2"
-        stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
-async function copiar(texto, botao) {
-  try {
-    // navigator.clipboard só existe em origem segura, e o site hospedado no
-    // S3 website hosting é HTTP puro — daí o fallback.
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(texto);
-    } else {
-      const campo = document.createElement("textarea");
-      campo.value = texto;
-      campo.style.cssText = "position:fixed;opacity:0";
-      document.body.appendChild(campo);
-      campo.select();
-      document.execCommand("copy");
-      campo.remove();
+async function copiar(texto,botao){
+  try{
+    if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(texto)}
+    else{
+      const c=document.createElement("textarea");
+      c.value=texto;c.style.cssText="position:fixed;opacity:0";
+      document.body.appendChild(c);c.select();document.execCommand("copy");c.remove();
     }
-  } catch {
-    erro("Não foi possível copiar.", "Selecione o texto e copie manualmente.");
-    return;
-  }
-
-  // Cancelar o timer anterior é o que faz o botão sempre voltar: sem isso,
-  // clicar duas vezes seguidas deixava o segundo timer restaurando o estado
-  // "copiado" que o primeiro ainda não tinha desfeito.
+  }catch{erro("Não foi possível copiar.","Selecione o texto e copie manualmente.");return}
   clearTimeout(botao.dataset.timer);
-  botao.innerHTML = ICONE_FEITO;
-  botao.classList.add("copiado");
-  botao.setAttribute("aria-label", "Copiado");
-  botao.dataset.timer = setTimeout(() => {
-    botao.innerHTML = ICONE_COPIAR;
-    botao.classList.remove("copiado");
-    botao.setAttribute("aria-label", "Copiar link");
-  }, 1500);
+  botao.innerHTML=ICONE_FEITO;botao.classList.add("copiado");botao.setAttribute("aria-label","Copiado");
+  botao.dataset.timer=setTimeout(()=>{
+    botao.innerHTML=ICONE_COPIAR;botao.classList.remove("copiado");botao.setAttribute("aria-label","Copiar link");
+  },1500);
 }
 
-function criarItem(link) {
-  const url = `${API_URL}/${link.shortId}`;
-
-  const item = document.createElement("li");
-  item.className = "item";
-
-  const topo = document.createElement("div");
-  topo.className = "item-topo";
-
-  // Abre em outra aba de propósito: clicar aqui passa pelo redirect e gera
-  // um clique de verdade, que é como se demonstra o contador subindo.
-  const ancora = document.createElement("a");
-  ancora.className = "item-link";
-  ancora.href = url;
-  ancora.target = "_blank";
-  ancora.rel = "noopener";
-  ancora.textContent = link.shortId;
-  ancora.addEventListener("click", agendarAtualizacao);
-
-  const cliques = document.createElement("span");
-  cliques.className = "badge";
-  cliques.title = `${link.clicks} clique(s)`;
-  cliques.textContent = link.clicks;
-
-  const espaco = document.createElement("span");
-  espaco.className = "item-espaco";
-
-  const botao = document.createElement("button");
-  botao.type = "button";
-  botao.className = "btn-icone";
-  botao.innerHTML = ICONE_COPIAR;
-  botao.setAttribute("aria-label", "Copiar link");
-  botao.addEventListener("click", () => copiar(url, botao));
-
-  topo.append(ancora, cliques, espaco, botao);
-
-  // textContent, nunca innerHTML: a URL longa veio de quem digitou.
-  const longa = document.createElement("p");
-  longa.className = "item-url";
-  longa.textContent = link.longUrl;
-  longa.title = link.longUrl;
-
-  item.append(topo, longa);
+function criarItem(link){
+  const url=`${API_URL}/${link.shortId}`;
+  const item=document.createElement("li");item.className="item";
+  const topo=document.createElement("div");topo.className="item-topo";
+  const a=document.createElement("a");
+  a.className="item-link";a.href=url;a.target="_blank";a.rel="noopener";
+  a.textContent=link.shortId;a.addEventListener("click",agendarAtualizacao);
+  const cliques=document.createElement("span");
+  cliques.className="badge";cliques.title=`${link.clicks} clique(s)`;cliques.textContent=link.clicks;
+  const espaco=document.createElement("span");espaco.className="item-espaco";
+  const botao=document.createElement("button");
+  botao.type="button";botao.className="btn-icone";botao.innerHTML=ICONE_COPIAR;
+  botao.setAttribute("aria-label","Copiar link");
+  botao.addEventListener("click",()=>copiar(url,botao));
+  topo.append(a,cliques,espaco,botao);
+  const longa=document.createElement("p");
+  longa.className="item-url";longa.textContent=link.longUrl;longa.title=link.longUrl;
+  item.append(topo,longa);
   return item;
 }
 
-function mostrarEsqueleto() {
-  $("lista").replaceChildren(
-    ...Array.from({ length: 3 }, () => {
-      const skel = document.createElement("li");
-      skel.className = "skel";
-      skel.setAttribute("aria-hidden", "true");
-      skel.innerHTML = `<div class="skel-barra" style="width:38%"></div>
-                        <div class="skel-barra" style="width:85%"></div>`;
-      return skel;
-    })
-  );
+function mostrarEsqueleto(){
+  $("lista").replaceChildren(...Array.from({length:3},()=>{
+    const s=document.createElement("li");
+    s.className="skel";s.setAttribute("aria-hidden","true");
+    s.innerHTML=`<div class="skel-barra" style="width:38%"></div><div class="skel-barra" style="width:85%"></div>`;
+    return s;
+  }));
 }
 
-function mostrarVazio(texto) {
-  const vazio = document.createElement("li");
-  vazio.className = "vazio";
-  vazio.textContent = texto;
-  $("lista").replaceChildren(vazio);
+function mostrarVazio(texto){
+  const v=document.createElement("li");v.className="vazio";v.textContent=texto;
+  $("lista").replaceChildren(v);
 }
 
-let carregando = false;
-
-// `esqueleto` só na primeira carga e no botão Atualizar. Nas recargas
-// automáticas ele piscaria a lista inteira a cada clique num link.
-async function carregar({ esqueleto = false } = {}) {
-  if (carregando) return;
-  carregando = true;
-  const botao = $("btn-atualizar");
-  botao.disabled = true;
-  if (esqueleto) mostrarEsqueleto();
-  try {
-    const { links } = await pedir("/urls");
-    if (links.length === 0) mostrarVazio("Nenhum link ainda.");
+async function carregar({esqueleto=false}={}){
+  if(carregando) return;
+  carregando=true;
+  const botao=$("btn-atualizar");botao.disabled=true;
+  if(esqueleto) mostrarEsqueleto();
+  try{
+    const{links}=await pedir("/urls");
+    if(links.length===0) mostrarVazio("Nenhum link ainda.");
     else $("lista").replaceChildren(...links.map(criarItem));
     limparErro();
-  } catch (e) {
-    if (esqueleto) mostrarVazio("Não foi possível carregar a lista.");
+  }catch(e){
+    if(esqueleto) mostrarVazio("Não foi possível carregar a lista.");
     erro(...mensagemDeFalha(e));
-  } finally {
-    carregando = false;
-    botao.disabled = false;
-  }
+  }finally{carregando=false;botao.disabled=false}
 }
 
-// O clique abre o link em outra aba e o contador sobe cerca de 1 segundo
-// depois, porque passa pela fila. Dois gatilhos cobrem os dois jeitos de
-// usar: voltar para esta aba (o caso comum) e ficar nela, quando o navegador
-// abre o link em segundo plano.
-//
-// Medido no Learner Lab, a cadeia clique → fila → contador → tabela leva de
-// 920ms a 1,1s. Um segundo fica no limite, então tentamos de novo meio segundo
-// depois: a segunda chamada é barata e cobre a vez em que a primeira chegou
-// cedo demais.
-let timerClique = null;
-
-function agendarAtualizacao() {
+function agendarAtualizacao(){
   clearTimeout(timerClique);
-  timerClique = setTimeout(() => {
-    carregar();
-    timerClique = setTimeout(() => carregar(), 1500);
-  }, 1000);
+  timerClique=setTimeout(()=>{carregar();timerClique=setTimeout(()=>carregar(),1500)},1000);
 }
 
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") carregar();
-});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") carregar()});
 
-$("form").addEventListener("submit", async (evento) => {
-  evento.preventDefault();
-  const botao = $("btn-encurtar");
-  limparErro();
-  botao.disabled = true;
-  botao.textContent = "Encurtando...";
-  try {
-    await pedir("/shorten", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: $("url").value.trim() }),
-    });
-    $("url").value = "";
+$("form").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const botao=$("btn-encurtar");
+  limparErro();botao.disabled=true;botao.textContent="Encurtando...";
+  try{
+    await pedir("/shorten",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:$("url").value.trim()})});
+    $("url").value="";
     await carregar();
-  } catch (e) {
-    erro(...mensagemDeFalha(e));
-  } finally {
-    botao.disabled = false;
-    botao.textContent = "Encurtar";
-  }
+  }catch(e){erro(...mensagemDeFalha(e))}
+  finally{botao.disabled=false;botao.textContent="Encurtar"}
 });
 
-$("btn-atualizar").addEventListener("click", () => carregar({ esqueleto: true }));
-carregar({ esqueleto: true });
+$("btn-atualizar").addEventListener("click",()=>carregar({esqueleto:true}));
+carregar({esqueleto:true});
 </script>
 </body>
 </html>
