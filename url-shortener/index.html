@@ -38,11 +38,11 @@ font-family:var(--fonte);font-size:14px;line-height:20px;-webkit-font-smoothing:
 border:1px solid var(--colorNeutralStroke2);border-radius:var(--radL);box-shadow:var(--shadow2)}
 .card::before{content:"";display:block;height:4px;margin:-24px -24px 20px;border-radius:var(--radL) var(--radL) 0 0;
 background:linear-gradient(90deg,var(--ifcVermelho) 0 22%,#349a46 22%,#3cb04f 34%,#62ca71 48%,#8eda96 62%,#c2ecc4 78%,#e9f9e9 92%,#f8fef8 100%)}
-.header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
 .header-icon{display:flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;
 border-radius:var(--radL);background:var(--colorBrandBackground2);color:var(--colorBrandForeground1)}
 h1{margin:0;font-size:20px;line-height:26px;font-weight:600}
-.sub{margin:0;font-size:12px;line-height:16px;color:var(--colorNeutralForeground3)}
+.sub{margin:0 0 20px;font-size:12px;line-height:16px;color:var(--colorNeutralForeground3)}
 .field{display:flex;flex-direction:column;gap:4px}
 .label{font-size:14px;font-weight:600}
 .control{position:relative;display:flex;align-items:center;padding:0 8px;height:32px;
@@ -105,8 +105,9 @@ transform:translateX(-100%);animation:brilho 1.4s ease-in-out infinite}
 <main class="card">
 <header class="header">
 <div class="header-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M10 14a4 4 0 0 0 5.66 0l3-3A4 4 0 0 0 13 5.34l-1.5 1.5M14 10a4 4 0 0 0-5.66 0l-3 3A4 4 0 0 0 11 18.66l1.5-1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-<div><h1>Encurtador de URL</h1><p class="sub">S3 · API&nbsp;Gateway · Lambda · DynamoDB · SQS · Streams · Pipes · SNS</p></div>
+<h1>Encurtador de URL</h1>
 </header>
+<p class="sub">S3 · API&nbsp;Gateway · Lambda · DynamoDB · SQS · Streams · Pipes · SNS</p>
 <form id="form">
 <div class="field"><label class="label" for="url">URL longa</label>
 <div class="control"><input type="url" id="url" required spellcheck="false" placeholder="https://exemplo.com/uma-pagina-bem-longa"></div></div>
