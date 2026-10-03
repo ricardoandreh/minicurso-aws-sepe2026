@@ -60,8 +60,12 @@ def lambda_handler(event, context):
         url_longa = imagem["longUrl"]["S"]
         cliques = imagem["clicks"]["N"]
 
+        # A URL vai entre crases para o Discord não montar o cartão de
+        # preview: sem isso uma mensagem de duas linhas vira meia tela. De
+        # quebra ela deixa de ser clicável, o que aqui é desejável, já que o
+        # destino é digitado por quem usa o encurtador e ninguém auditou.
         _postar(
             f"🎉 **O link `{short_id}` bateu {cliques} cliques!**\n"
-            f"Destino: {url_longa}"
+            f"Destino: `{url_longa}`"
         )
         print(f"parabéns postado para {short_id}")
