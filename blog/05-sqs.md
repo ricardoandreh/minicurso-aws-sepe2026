@@ -274,6 +274,70 @@ tentativa que falhou.
 Deixe essa mensagem aí por enquanto, ou apague, tanto faz. O que ela causa, e
 como o código se defende, é assunto do artigo 11.
 
+### 8. Quem apaga a mensagem, afinal
+
+Ficou uma pergunta no ar nos dois passos anteriores: se receber não remove, o
+que remove?
+
+A operação chama-se `DeleteMessage`, e ela **não** usa o `MessageId`. Usa o
+**ReceiptHandle**, um token que o SQS devolve a cada recebimento:
+
+```
+   ReceiveMessage
+        │
+        ▼
+   ┌──────────────────────────────────────────────────┐
+   │  a mensagem vai para IN FLIGHT                   │
+   │  o SQS devolve: corpo + ReceiptHandle            │
+   │  o relógio do visibility timeout começa a correr │
+   └──────────────────────────────────────────────────┘
+        │
+        ├─▶ o consumidor terminou bem
+        │      └─ DeleteMessage(ReceiptHandle)
+        │           a mensagem some da fila, de vez
+        │
+        └─▶ o consumidor falhou, ou demorou mais que o timeout
+               └─ ninguém apagou, o relógio vence
+                    a mensagem volta para AVAILABLE
+                    o ReceiptHandle antigo deixa de valer
+                    o próximo recebimento ganha um handle novo
+```
+
+O handle ser **por recebimento**, e não por mensagem, é o que impede um
+consumidor lento de apagar uma mensagem que já foi reentregue para outro: quando
+o visibility vence, o handle dele morre junto.
+
+E quem chama isso depende de como você consome:
+
+| Consumidor | Quem chama `DeleteMessage` |
+|---|---|
+| seu código, com o SDK | você, explicitamente |
+| gatilho do Lambda | o serviço do Lambda, por você |
+
+Repare que o `contador.py` não tem nenhuma chamada de `delete_message`. Com
+gatilho, o Lambda apaga o lote quando a função **retorna sem levantar exceção**,
+e não apaga nada quando ela levanta.
+
+Isso faz do `return` e do `raise` decisões de protocolo, não de estilo:
+
+```python
+except (ValueError, KeyError, TypeError) as erro:
+    print(f"mensagem descartada: {erro} | corpo={registro['body'][:200]!r}")
+    continue          # segue o lote, a função retorna bem, o SQS apaga
+```
+
+Se ali estivesse `raise` em vez de `continue`, a função levantaria, o lote
+inteiro voltaria para a fila, e a mensagem com defeito giraria para sempre. Foi
+exatamente isso que você viu no passo 7.
+
+E agora a parte que vale a aula inteira: **o SQS não faz ideia se o
+processamento deu certo.** Ele só sabe se a função levantou. Durante a
+preparação desta série uma mensagem foi processada "com sucesso", apagada da
+fila, e o que ela fez foi criar um item lixo na tabela. Log limpo, fila limpa,
+dado estragado.
+
+Confirmar o processamento é decisão do seu código, não do SQS. Ele só obedece.
+
 ## O que deu errado (e por quê)
 
 **O contador não dispara.** Confira se o gatilho é o SQS. É fácil, montando
