@@ -162,6 +162,69 @@ Clique num link curto algumas vezes e acompanhe:
 
 Repare numa coisa: **ninguém invocou o contador**. Ele simplesmente reagiu.
 
+### 6. As duas colunas da fila
+
+Console → **SQS** → a fila. No topo há dois números, e entender a diferença
+entre eles vale mais do que parece:
+
+| Rótulo no console | Atributo na API | O que significa |
+|---|---|---|
+| **Messages available** | `ApproximateNumberOfMessages` | esperando alguém pegar |
+| **Messages in flight** | `ApproximateNumberOfMessagesNotVisible` | alguém pegou e ainda não apagou |
+
+Aquilo da seção "Como funciona", que a mensagem não some ao ser lida, é isto
+aqui em números. Ela não sai da fila quando alguém a recebe: **troca de coluna**.
+Fica *in flight* enquanto durar o visibility timeout. Se o consumidor apagar,
+some de vez. Se o consumidor falhar ou demorar demais, o relógio expira e ela
+volta para *available*.
+
+Dá para ver os dois números trocando de lugar:
+
+1. Na `url-shortener-counter` → **Configuration → Triggers**, **desabilite** o
+   gatilho do SQS
+2. Clique num link curto três vezes
+3. Volte na fila: **Messages available: 3**, **in flight: 0**. O contador na
+   tela do site não se move, e o redirect continua instantâneo
+4. **Send and receive messages → Poll for messages**: as três estão lá, e dá
+   para abrir e ler o corpo de cada uma
+5. Reabilite o gatilho. Em segundos *available* volta a 0 e o contador pula de
+   três de uma vez
+
+> 📸 **Print:** a fila com 3 em *available* e 0 em *in flight*, ao lado do
+> contador parado no site.
+
+Na tela do Poll repare na coluna **Receive count**. É quantas vezes aquela
+mensagem já foi entregue. Numa fila saudável é 1.
+
+### 7. Por que uma mensagem com defeito não aparece no Poll
+
+Esse é o caso que confunde, e é melhor encontrá-lo agora do que na primeira vez
+que algo quebrar de verdade.
+
+Com o gatilho **ligado**, publique na fila, pelo próprio console, uma mensagem
+que o contador não consiga processar: escreva `teste01` cru, sem aspas e sem
+JSON.
+
+O contador vai falhar, porque `json.loads` não lê isso. Agora tente dar Poll
+para ver a mensagem. Você não vai conseguir, e a fila vai mostrar
+**available: 0, in flight: 1**.
+
+O motivo é uma corrida que você sempre perde. A Lambda recebe a mensagem, falha
+em milissegundos, e a mensagem fica invisível pelos 30 segundos do visibility
+timeout. Quando ela reaparece, o poller da Lambda está esperando em long
+polling e a pega de novo, antes de qualquer clique seu. Ela passa a vida
+inteira *in flight*.
+
+Para conseguir olhar, tire a Lambda da disputa: **desabilite o gatilho, espere
+o visibility timeout expirar** (30 segundos) e só então dê Poll. A mensagem
+aparece, e o **Receive count** vai mostrar um número alto, uma entrega para cada
+tentativa que falhou.
+
+> 📸 **Print:** a mensagem finalmente visível no Poll, com o Receive count alto.
+
+Deixe essa mensagem aí por enquanto, ou apague, tanto faz. O que ela causa, e
+como o código se defende, é assunto do artigo 11.
+
 ## O que deu errado (e por quê)
 
 **O contador não dispara.** Confira se o gatilho é o SQS. É fácil, montando
