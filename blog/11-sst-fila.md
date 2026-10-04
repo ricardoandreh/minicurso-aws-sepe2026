@@ -179,18 +179,44 @@ aplicação oferece: o consumidor esteve fora do ar e o usuário não percebeu.
 
 ## O que deu errado (e por quê)
 
-**`KeyError: 'longUrl'` na listagem, depois de apagar um link.** Esse aconteceu
-de verdade na preparação desta série, e é bonito.
+**Itens fantasma na tabela: `shortId` e `clicks`, sem mais nada.** Esse
+apareceu de verdade na preparação desta série, e é o melhor erro da série
+inteira.
 
-Apaguei um item na tabela enquanto ainda havia cliques dele na fila. O contador
-leu a mensagem e fez `update_item` com `ADD clicks`. E o `update_item` do
-DynamoDB, num item que não existe, **cria o item**. A tabela ficou com um
-registro de `shortId` e `clicks`, sem `longUrl`, e a listagem estourou.
+O teste foi simples: publicar `{"shortId": "abc"}` direto na fila, pelo console
+do SQS. Em segundos a tabela tinha um item `abc` com um clique, de um link que
+nunca existiu. Repetindo, dois cliques.
 
-A correção está no `_listar`: `.get("longUrl", "")` em vez de `["longUrl"]`, e um
-filtro descartando itens sem URL. A lição não é "use `.get()`". É que num banco
-sem schema, qualquer escrita parcial é um item válido, e quem lê precisa estar
-preparado.
+A causa é que o `update_item` com `ADD`, numa chave que não existe, **cria o
+item**. E o contador acreditava em qualquer `shortId` que chegasse.
+
+O reflexo é dizer "mas o redirect valida, ele devolve 404 para link
+inexistente". Valida mesmo. O problema é que **quem valida e quem escreve são
+funções diferentes, com uma fila no meio**. A fila aceita mensagem de qualquer
+origem: o console, um script, outro serviço, uma reentrega antiga. A validação
+feita no produtor não protege o consumidor.
+
+A correção é uma escrita condicional no contador:
+
+```python
+tabela.update_item(
+    Key={"shortId": short_id},
+    UpdateExpression="ADD clicks :um",
+    ConditionExpression="attribute_exists(shortId)",
+    ExpressionAttributeValues={":um": 1},
+)
+```
+
+Se a condição falhar, o link não existe, e descartar o clique é o certo. Note
+que **não** relançamos a exceção: levantar aqui faria a mensagem voltar para a
+fila e repetir para sempre, porque a próxima tentativa falharia igual.
+
+Esse mesmo furo cobre o caso mais inocente, que é apagar um link enquanto ainda
+há cliques dele na fila. Mas repare na ordem das coisas: a versão anterior do
+código tratava o sintoma na leitura, com `.get("longUrl", "")` no `_listar` e um
+filtro escondendo itens incompletos. A listagem ficava bonita e o lixo
+continuava entrando. Defender quem lê é bom; defender quem escreve é o que
+resolve.
 
 **O contador conta dois.** Entrega *at-least-once*: o SQS garante que a mensagem
 chega, não que chega uma vez só. `ADD` é atômico, então duas Lambdas concorrentes

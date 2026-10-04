@@ -127,6 +127,7 @@ O núcleo é uma linha:
 tabela.update_item(
     Key={"shortId": short_id},
     UpdateExpression="ADD clicks :um",
+    ConditionExpression="attribute_exists(shortId)",
     ExpressionAttributeValues={":um": 1},
 )
 ```
@@ -135,6 +136,11 @@ tabela.update_item(
 perdem contagem, e funciona mesmo se o atributo ainda não existir. Ler, somar em
 Python e gravar de volta teria condição de corrida, e dois cliques simultâneos
 virariam um só.
+
+A `ConditionExpression` está aí por um motivo que vale testar na mão daqui a
+pouco: sem ela, o `ADD` numa chave que não existe **cria** o item. O artigo 11
+mostra o estrago, e o `except` que acompanha essa condição está no código
+completo em [`../url-shortener/lambdas/contador.py`](../url-shortener/lambdas/contador.py).
 
 ### 4. Ligar a fila na função
 

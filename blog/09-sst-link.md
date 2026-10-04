@@ -187,12 +187,11 @@ no pacote da função no momento do deploy. Se você acrescentou algo depois do
 `link` não está onde você pensa que está. Confira se é a função certa, e se o
 deploy que acrescentou o link realmente passou.
 
-**`KeyError: 'longUrl'` na listagem.** Essa é mais sutil e vai aparecer mais
-tarde, então já fica o aviso: o `update_item` com `ADD` **cria** o item se ele
-não existir. Se você apagar um link e ainda houver clique dele na fila, a tabela
-ganha um item com `shortId` e `clicks` e nada mais. A listagem no `api.py` usa
-`.get()` com valor padrão e filtra itens sem `longUrl` por causa disso. Num
-banco sem schema, código defensivo na leitura não é paranoia.
+**`KeyError: 'longUrl'` na listagem.** O `_listar` usa `.get()` com valor
+padrão e filtra itens sem `longUrl`, o que à primeira vista parece paranoia num
+código que acabou de escrever os itens. Não é: num banco sem schema qualquer
+escrita parcial produz um item válido, e no artigo 11 você vai ver uma escrita
+parcial acontecer por um caminho que não é óbvio.
 
 ## Como isso sustenta serverless
 
