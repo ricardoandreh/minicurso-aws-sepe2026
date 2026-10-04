@@ -218,6 +218,46 @@ filtro escondendo itens incompletos. A listagem ficava bonita e o lixo
 continuava entrando. Defender quem lê é bom; defender quem escreve é o que
 resolve.
 
+**Uma mensagem malformada fica girando por quatro dias.** Continuando o
+experimento anterior, publique na fila algo que não seja JSON. O `json.loads`
+levanta, a função termina com erro, e o SQS faz o que foi mandado fazer:
+devolve a mensagem para a fila.
+
+Só que uma mensagem malformada **nunca** vai dar certo numa retentativa. Então
+ela volta a cada visibility timeout até a retenção expirar. Com os padrões do
+console, 30 segundos e 4 dias, são **11.520 invocações com exatamente o mesmo
+erro**, e a fila do hands-on não tem Dead Letter Queue para onde mandá-la.
+
+E o desperdício é o menor dos problemas. O SQS entrega **em lote**, até 10
+mensagens por invocação. Quando a função levanta, o lote inteiro é considerado
+falho, inclusive os cliques bons que vieram junto. Eles voltam para a fila e são
+processados de novo, e como o `ADD` não é idempotente, são contados de novo. Uma
+mensagem envenenada não só gira: ela inflaciona o contador dos outros.
+
+A correção é separar o parse do processamento, e descartar o que não dá parse:
+
+```python
+try:
+    corpo = json.loads(registro["body"])
+    short_id = corpo["shortId"]
+    if not isinstance(short_id, str) or not short_id:
+        raise ValueError("shortId ausente ou vazio")
+except (ValueError, KeyError, TypeError) as erro:
+    print(f"mensagem descartada: {erro} | corpo={registro['body'][:200]!r}")
+    continue
+```
+
+A validação de tipo não é zelo excessivo: com `{"shortId": 123}` o código
+seguiria adiante e quebraria lá na frente, dentro do boto3, com um erro bem
+menos óbvio de ler.
+
+Descartar é defensável aqui porque a mensagem é irrecuperável. Em produção a
+resposta completa tem duas partes a mais: uma **DLQ**, para a mensagem ruim ir
+para algum lugar onde alguém possa olhar em vez de sumir num log, e
+**`ReportBatchItemFailures`**, que faz a função devolver a lista de quais
+mensagens do lote falharam. Com isso o SQS reentrega só as ruins, e o lote bom
+não é punido junto.
+
 **O contador conta dois.** Entrega *at-least-once*: o SQS garante que a mensagem
 chega, não que chega uma vez só. `ADD` é atômico, então duas Lambdas concorrentes
 não perdem contagem, mas se a **mesma** mensagem for entregue duas vezes, ela
