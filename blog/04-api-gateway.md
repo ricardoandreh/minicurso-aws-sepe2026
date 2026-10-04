@@ -1,33 +1,24 @@
 # 4. A porta de entrada
 
-> Parte da série *construindo um encurtador de URL serverless na AWS*.
-> [Voltar ao índice](README.md)
+> Parte da série *construindo um encurtador de URL serverless na AWS*. [Voltar ao índice](README.md)
 
 A função existe mas ninguém alcança. Falta o endereço.
 
 ## O que é o API Gateway
 
-A porta HTTP da sua aplicação. Ele recebe a requisição, decide qual Lambda
-chamar, converte a resposta de volta em HTTP e devolve ao navegador.
+A porta HTTP da sua aplicação. Ele recebe a requisição, decide qual Lambda chamar, converte a resposta de volta em HTTP e devolve ao navegador.
 
 ## Como funciona
 
 Três conceitos, e vale separá-los porque o console os mistura:
 
-**Rota** é o par método + caminho: `POST /shorten`, `GET /{shortId}`. O trecho
-entre chaves é variável e chega à função em `pathParameters`.
+**Rota** é o par método + caminho: `POST /shorten`, `GET /{shortId}`. O trecho entre chaves é variável e chega à função em `pathParameters`.
 
 **Integração** é para onde a rota aponta, no nosso caso uma Lambda.
 
-**Permissão** é o direito do API Gateway de invocar aquela função. Fica na
-*resource policy* da Lambda, não na role. É um terceiro elemento, invisível na
-tela de rotas, e é a causa de erro mais frequente deste artigo.
+**Permissão** é o direito do API Gateway de invocar aquela função. Fica na *resource policy* da Lambda, não na role. É um terceiro elemento, invisível na tela de rotas, e é a causa de erro mais frequente deste artigo.
 
-Existem dois tipos de API: **REST API** (v1, mais recursos, mais cara) e **HTTP
-API** (v2, mais simples, mais barata, mais rápida). Vamos de HTTP API, e vale
-guardar uma diferença: **HTTP API não tem API Key nem Usage Plan**. Esses são
-exclusivos da REST API, e é fácil perder um tempão procurando no console uma
-opção que não existe ali.
+Existem dois tipos de API: **REST API** (v1, mais recursos, mais cara) e **HTTP API** (v2, mais simples, mais barata, mais rápida). Vamos de HTTP API, e vale guardar uma diferença: **HTTP API não tem API Key nem Usage Plan**. Esses são exclusivos da REST API, e é fácil perder um tempão procurando no console uma opção que não existe ali.
 
 ## Onde entra no encurtador
 
@@ -65,12 +56,7 @@ Na etapa de rotas, configure as três apontando para a mesma integração:
 
 > 📸 **Print:** a lista das três rotas, todas com a mesma Lambda como destino.
 
-**Atenção à ordem conceitual:** `/urls` e `/{shortId}` competem pelo mesmo
-formato de caminho. O API Gateway resolve isso dando precedência ao **segmento
-literal**: `/urls` cai na listagem, não no redirect. Se você esquecer de criar a
-rota `/urls`, o caminho `/urls` casa com `/{shortId}` e sua função vai procurar
-um link chamado "urls" no banco, devolvendo 404 por um motivo bem diferente do
-que parece.
+**Atenção à ordem conceitual:** `/urls` e `/{shortId}` competem pelo mesmo formato de caminho. O API Gateway resolve isso dando precedência ao **segmento literal**: `/urls` cai na listagem, não no redirect. Se você esquecer de criar a rota `/urls`, o caminho `/urls` casa com `/{shortId}` e sua função vai procurar um link chamado "urls" no banco, devolvendo 404 por um motivo bem diferente do que parece.
 
 ### 3. Configurar o CORS
 
@@ -98,21 +84,17 @@ No `index.html`, troque:
 const API_URL = "https://SEU-API-ID.execute-api.us-east-1.amazonaws.com";
 ```
 
-Suba o arquivo de novo no S3 (**Upload**, sobrescrevendo) e recarregue o site com
-**Ctrl+Shift+R**.
+Suba o arquivo de novo no S3 (**Upload**, sobrescrevendo) e recarregue o site com **Ctrl+Shift+R**.
 
-> 📸 **Print:** o site com um link já encurtado na lista, mostrando o contador
-> em zero.
+> 📸 **Print:** o site com um link já encurtado na lista, mostrando o contador em zero.
 
 ### 5. Testar o fluxo
 
-Cole uma URL longa, clique em **Encurtar** e depois no link curto que apareceu.
-Você deve ser redirecionado.
+Cole uma URL longa, clique em **Encurtar** e depois no link curto que apareceu. Você deve ser redirecionado.
 
 ## O que deu errado (e por quê)
 
-Este artigo tem quatro erros clássicos, e **o jeito de distingui-los é olhar se
-a Lambda gerou log**. Se não gerou, o problema está antes dela.
+Este artigo tem quatro erros clássicos, e **o jeito de distingui-los é olhar se a Lambda gerou log**. Se não gerou, o problema está antes dela.
 
 | Resposta | Tem log na Lambda? | Causa |
 |---|---|---|
@@ -121,30 +103,15 @@ a Lambda gerou log**. Se não gerou, o problema está antes dela.
 | nada, e erro de CORS no console do navegador | não | preflight bloqueado |
 | `{"error":"..."}` | sim | é o seu código respondendo |
 
-**O 500 sem log** é o mais chato dos quatro. Quando você cria uma rota e **seleciona uma
-integração já existente**, o console não adiciona a permissão de invocação para
-aquela rota. O API Gateway tenta chamar a função, toma `AccessDenied` e devolve
-o 500 genérico dele. Sua função nunca roda, então não há log nenhum para
-consultar, o que leva a gente a procurar no lugar errado.
+**O 500 sem log** é o mais chato dos quatro. Quando você cria uma rota e **seleciona uma integração já existente**, o console não adiciona a permissão de invocação para aquela rota. O API Gateway tenta chamar a função, toma `AccessDenied` e devolve o 500 genérico dele. Sua função nunca roda, então não há log nenhum para consultar, o que leva a gente a procurar no lugar errado.
 
-Para corrigir: apague a rota e recrie usando **Create and attach an
-integration**, que adiciona a permissão.
+Para corrigir: apague a rota e recrie usando **Create and attach an integration**, que adiciona a permissão.
 
-**O erro de CORS** tem uma armadilha própria: **testar com `curl` não revela o
-problema**. O `curl` não faz preflight. A API responde 201 lindamente na linha de
-comando e o site continua sem funcionar, o que leva você a culpar o JavaScript.
+**O erro de CORS** tem uma armadilha própria: **testar com `curl` não revela o problema**. O `curl` não faz preflight. A API responde 201 lindamente na linha de comando e o site continua sem funcionar, o que leva você a culpar o JavaScript.
 
-E ele é sutil porque o CORS pode estar *quase* certo. Com origem e métodos
-configurados mas **sem `content-type` nos headers**, o preflight devolve 204,
-que é sucesso, só que sem nenhum cabeçalho `Access-Control-*`. Aí o navegador
-cancela.
-Como o frontend manda `Content-Type: application/json`, é justamente esse header
-que obriga o preflight.
+E ele é sutil porque o CORS pode estar *quase* certo. Com origem e métodos configurados mas **sem `content-type` nos headers**, o preflight devolve 204, que é sucesso, só que sem nenhum cabeçalho `Access-Control-*`. Aí o navegador cancela. Como o frontend manda `Content-Type: application/json`, é justamente esse header que obriga o preflight.
 
-**A URL curta sai com `$default` no meio.** A HTTP API faz auto-deploy num stage
-chamado `$default`, que **não** aparece no caminho da URL. Se o código montar
-`https://{domínio}/{stage}/{id}`, o resultado é `.../$default/abc123`, quebrado.
-Por isso a função verifica:
+**A URL curta sai com `$default` no meio.** A HTTP API faz auto-deploy num stage chamado `$default`, que **não** aparece no caminho da URL. Se o código montar `https://{domínio}/{stage}/{id}`, o resultado é `.../$default/abc123`, quebrado. Por isso a função verifica:
 
 ```python
 prefixo = "" if stage == "$default" else f"/{stage}"
@@ -152,19 +119,12 @@ prefixo = "" if stage == "$default" else f"/{stage}"
 
 ## Como isso sustenta serverless
 
-O API Gateway é o tradutor que permite que a sua função **não saiba o que é
-HTTP**. Ela recebe um dicionário e devolve um dicionário. Quem converte isso de
-e para a web é outro serviço, gerenciado, que escala sozinho.
+O API Gateway é o tradutor que permite que a sua função **não saiba o que é HTTP**. Ela recebe um dicionário e devolve um dicionário. Quem converte isso de e para a web é outro serviço, gerenciado, que escala sozinho.
 
-É desacoplamento real, não metáfora: a mesma função poderia ser acionada por uma
-fila amanhã, sem mudar a lógica, só o formato do evento. E é por isso que o
-próximo artigo consegue acrescentar um caminho totalmente assíncrono sem
-reescrever nada do que já existe.
+É desacoplamento real, não metáfora: a mesma função poderia ser acionada por uma fila amanhã, sem mudar a lógica, só o formato do evento. E é por isso que o próximo artigo consegue acrescentar um caminho totalmente assíncrono sem reescrever nada do que já existe.
 
 ## O que ainda não dá para fazer
 
-O encurtador funciona. Mas repare no redirect: ele busca a URL, conta o clique e
-só então responde. Quem clicou está esperando o banco ser atualizado para ser
-redirecionado, e contar clique não é urgente para ninguém.
+O encurtador funciona. Mas repare no redirect: ele busca a URL, conta o clique e só então responde. Quem clicou está esperando o banco ser atualizado para ser redirecionado, e contar clique não é urgente para ninguém.
 
 **Próximo:** [5. Tirando trabalho do caminho crítico](05-sqs.md)

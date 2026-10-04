@@ -1,56 +1,40 @@
 # 7. Avisando o mundo
 
-> Parte da série *construindo um encurtador de URL serverless na AWS*.
-> [Voltar ao índice](README.md)
+> Parte da série *construindo um encurtador de URL serverless na AWS*. [Voltar ao índice](README.md)
 
 O pipe entrega no tópico, mas ninguém está ouvindo. Vamos fechar a cadeia.
 
 ## O que é o SNS
 
-Um megafone. Alguém publica uma mensagem no **tópico** e todos os **assinantes**
-recebem, cada um na sua cópia, independentes entre si.
+Um megafone. Alguém publica uma mensagem no **tópico** e todos os **assinantes** recebem, cada um na sua cópia, independentes entre si.
 
 ## Como funciona
 
-**Um publica, N recebem.** O publicador não sabe quem são os assinantes nem
-quantos existem. Adicionar um não exige tocar em quem publica.
+**Um publica, N recebem.** O publicador não sabe quem são os assinantes nem quantos existem. Adicionar um não exige tocar em quem publica.
 
-**A entrega é assíncrona.** Para uma Lambda, o SNS invoca e não espera resposta.
-Se a função falhar, o SNS **tenta de novo** sozinho, com intervalo crescente.
+**A entrega é assíncrona.** Para uma Lambda, o SNS invoca e não espera resposta. Se a função falhar, o SNS **tenta de novo** sozinho, com intervalo crescente.
 
-**Isso é fan-out.** A diferença para a fila: na fila, uma mensagem é consumida
-por **um**; no tópico, a mesma mensagem vai para **todos**.
+**Isso é fan-out.** A diferença para a fila: na fila, uma mensagem é consumida por **um**; no tópico, a mesma mensagem vai para **todos**.
 
 ## O que é o Parameter Store
 
-Um cofre de configuração do AWS Systems Manager. Guarda valores por nome, e o
-tipo `SecureString` cifra com KMS.
+Um cofre de configuração do AWS Systems Manager. Guarda valores por nome, e o tipo `SecureString` cifra com KMS.
 
-No tier padrão é **gratuito**, diferente do Secrets Manager, que cobra por
-segredo por mês.
+No tier padrão é **gratuito**, diferente do Secrets Manager, que cobra por segredo por mês.
 
 ## Onde entram no encurtador
 
 O SNS fica entre o pipe e o Discord. E o Parameter Store guarda a URL do webhook.
 
-**Por que não uma variável de ambiente para o webhook?** Porque variável de
-ambiente de Lambda aparece **em texto puro** para qualquer um que abra a função
-no console. É o mesmo erro de embutir uma chave no JavaScript do frontend, só que
-no backend.
+**Por que não uma variável de ambiente para o webhook?** Porque variável de ambiente de Lambda aparece **em texto puro** para qualquer um que abra a função no console. É o mesmo erro de embutir uma chave no JavaScript do frontend, só que no backend.
 
-**E por que o SNS, se há um assinante só?** Sendo honesto: com um assinante só,
-ele é mais investimento do que necessidade. A função de marco já existe e poderia postar
-direto. O ganho aparece no dia em que você quiser avisar também no Slack ou
-alimentar um ranking: adiciona um assinante e **não toca** em nada que já
-funciona. Dizer que ele é indispensável agora seria exagero; o argumento de
-verdade é o custo de mudar depois.
+**E por que o SNS, se há um assinante só?** Sendo honesto: com um assinante só, ele é mais investimento do que necessidade. A função de marco já existe e poderia postar direto. O ganho aparece no dia em que você quiser avisar também no Slack ou alimentar um ranking: adiciona um assinante e **não toca** em nada que já funciona. Dizer que ele é indispensável agora seria exagero; o argumento de verdade é o custo de mudar depois.
 
 ## Hands-on
 
 ### 1. Guardar o webhook
 
-Crie um webhook num canal do Discord (*Configurações do canal → Integrações →
-Webhooks → Novo webhook → Copiar URL*).
+Crie um webhook num canal do Discord (*Configurações do canal → Integrações → Webhooks → Novo webhook → Copiar URL*).
 
 Console → **Systems Manager** → **Parameter Store** → **Create parameter**:
 
@@ -63,8 +47,7 @@ Console → **Systems Manager** → **Parameter Store** → **Create parameter**
 
 **Create parameter.**
 
-> 📸 **Print:** o parâmetro criado na lista, mostrando o tipo SecureString, sem
-> revelar o valor.
+> 📸 **Print:** o parâmetro criado na lista, mostrando o tipo SecureString, sem revelar o valor.
 
 #### Pelo terminal, se preferir
 
@@ -81,8 +64,7 @@ Ele responde com o número da versão, `1`.
 
 Três coisas que valem saber antes de precisar delas:
 
-**Rodar de novo com o mesmo nome dá erro**, `ParameterAlreadyExists`. Para
-trocar o valor é preciso ser explícito:
+**Rodar de novo com o mesmo nome dá erro**, `ParameterAlreadyExists`. Para trocar o valor é preciso ser explícito:
 
 ```bash
 aws ssm put-parameter --profile labs \
@@ -91,9 +73,7 @@ aws ssm put-parameter --profile labs \
   --value "https://discord.com/api/webhooks/OUTRO/WEBHOOK"
 ```
 
-Agora ele responde `2`. **Cada escrita cria uma versão**, e as anteriores
-continuam lá, consultáveis. É uma diferença boa em relação a variável de
-ambiente, que você sobrescreve e perde.
+Agora ele responde `2`. **Cada escrita cria uma versão**, e as anteriores continuam lá, consultáveis. É uma diferença boa em relação a variável de ambiente, que você sobrescreve e perde.
 
 **Ler de volta sem decriptar devolve o texto cifrado**, não o valor:
 
@@ -103,18 +83,14 @@ $ aws ssm get-parameter --profile labs --name /labs/discord-webhook \
 AQICAHj1DPX3A0DpBLv2r4GvMos3ulzlxvDm476sG34msnzWXAFO3sLSlvzK7mDNbx6B2OAs...
 ```
 
-Com `--with-decryption` vem a URL. É exatamente por isso que o código da função
-passa `WithDecryption=True` no `get_parameter`: sem isso ele receberia esse
-blob e tentaria fazer um POST para ele.
+Com `--with-decryption` vem a URL. É exatamente por isso que o código da função passa `WithDecryption=True` no `get_parameter`: sem isso ele receberia esse blob e tentaria fazer um POST para ele.
 
 ```bash
 aws ssm get-parameter --profile labs --name /labs/discord-webhook \
   --with-decryption --query 'Parameter.Value' --output text
 ```
 
-E repare no que essa separação te dá: **ler o parâmetro e ler o segredo são
-duas permissões diferentes.** Quem tem `ssm:GetParameter` mas não tem acesso à
-chave KMS consegue listar e ver que o parâmetro existe, sem conseguir abrir.
+E repare no que essa separação te dá: **ler o parâmetro e ler o segredo são duas permissões diferentes.** Quem tem `ssm:GetParameter` mas não tem acesso à chave KMS consegue listar e ver que o parâmetro existe, sem conseguir abrir.
 
 ### 2. Criar a função de aviso
 
@@ -124,22 +100,17 @@ chave KMS consegue listar e ver que o parâmetro existe, sem conseguir abrir.
 - **Runtime:** Python 3.13
 - No Learner Lab: **Use an existing role → LabRole**
 
-Cole [`url-shortener/lambdas/discord.py`](../url-shortener/lambdas/discord.py) →
-**Deploy**.
+Cole [`url-shortener/lambdas/discord.py`](../url-shortener/lambdas/discord.py) → **Deploy**.
 
-**Configuration → Environment variables:** `WEBHOOK_PARAM` = `/labs/discord-webhook`
-(o nome ou o ARN completo; `get_parameter` aceita os dois).
+**Configuration → Environment variables:** `WEBHOOK_PARAM` = `/labs/discord-webhook` (o nome ou o ARN completo; `get_parameter` aceita os dois).
 
-**Configuration → General configuration → Timeout: 10 s.** O padrão de 3 s é
-curto: há uma consulta ao Parameter Store **e** um POST externo.
+**Configuration → General configuration → Timeout: 10 s.** O padrão de 3 s é curto: há uma consulta ao Parameter Store **e** um POST externo.
 
-No Learner Lab não é preciso mexer em permissão. Fora dele, a role precisa de
-`ssm:GetParameter` e `kms:Decrypt`.
+No Learner Lab não é preciso mexer em permissão. Fora dele, a role precisa de `ssm:GetParameter` e `kms:Decrypt`.
 
 ### 3. Assinar o tópico
 
-Na `url-shortener-alert` → **Configuration → Triggers → Add trigger** → **SNS** →
-tópico `congrats-urls` → **Add**.
+Na `url-shortener-alert` → **Configuration → Triggers → Add trigger** → **SNS** → tópico `congrats-urls` → **Add**.
 
 > 📸 **Print:** o diagrama da função com o SNS à esquerda como gatilho.
 
@@ -163,35 +134,23 @@ def _webhook_url():
     return _webhook
 ```
 
-O módulo só é carregado no cold start, então a consulta acontece uma vez por
-ambiente de execução, não uma por mensagem. Buscar o mesmo parâmetro a cada
-invocação é a forma mais comum de esbarrar no limite de requisições do Parameter
-Store sem entender por quê.
+O módulo só é carregado no cold start, então a consulta acontece uma vez por ambiente de execução, não uma por mensagem. Buscar o mesmo parâmetro a cada invocação é a forma mais comum de esbarrar no limite de requisições do Parameter Store sem entender por quê.
 
-**A função não decide nada.** Quem decidiu foi o filtro do pipe. Ela recebe,
-formata e posta. Uma responsabilidade só, e por isso não precisa de nenhum campo
-de controle na tabela.
+**A função não decide nada.** Quem decidiu foi o filtro do pipe. Ela recebe, formata e posta. Uma responsabilidade só, e por isso não precisa de nenhum campo de controle na tabela.
 
 ## O que deu errado (e por quê)
 
-**`Runtime.HandlerNotFound: Handler 'lambda_handler' missing`.** O mesmo do
-artigo 3: o console espera `lambda_function.lambda_handler`. Renomeie a função
-no código.
+**`Runtime.HandlerNotFound: Handler 'lambda_handler' missing`.** O mesmo do artigo 3: o console espera `lambda_function.lambda_handler`. Renomeie a função no código.
 
-**A Lambda é invocada três vezes com o mesmo RequestId.** Não é bug, é o SNS
-reentregando porque a função falhou. Invocação assíncrona tem retry automático,
-e esse é o contraste com o API Gateway, que teria devolvido 500 na cara do
-usuário sem tentar de novo.
+**A Lambda é invocada três vezes com o mesmo RequestId.** Não é bug, é o SNS reentregando porque a função falhou. Invocação assíncrona tem retry automático, e esse é o contraste com o API Gateway, que teria devolvido 500 na cara do usuário sem tentar de novo.
 
-**`403 Forbidden` do Discord, sem detalhe.** O Cloudflare do Discord bloqueia o
-`User-Agent` padrão do `urllib` (erro 1010). Por isso o código manda um próprio:
+**`403 Forbidden` do Discord, sem detalhe.** O Cloudflare do Discord bloqueia o `User-Agent` padrão do `urllib` (erro 1010). Por isso o código manda um próprio:
 
 ```python
 headers={"Content-Type": "application/json", "User-Agent": "url-shortener-bot/1.0"}
 ```
 
-**Timeout de 3 s.** Consulta ao SSM mais POST externo passam disso no cold
-start.
+**Timeout de 3 s.** Consulta ao SSM mais POST externo passam disso no cold start.
 
 ## Como isso sustenta event-driven
 
@@ -208,16 +167,11 @@ clique no link
   → Lambda posta no Discord
 ```
 
-Sete passos, e **nenhum deles chama o seguinte**. Cada um reage a um fato e
-produz outro. Você pode derrubar qualquer peça do meio que as anteriores
-continuam funcionando, porque as mensagens esperam.
+Sete passos, e **nenhum deles chama o seguinte**. Cada um reage a um fato e produz outro. Você pode derrubar qualquer peça do meio que as anteriores continuam funcionando, porque as mensagens esperam.
 
-E a extensibilidade é concreta, não teórica. Quer avisar no Slack? Assina o
-tópico. Quer um painel de marcos? Assina o tópico. Quer contar cliques de outro
-jeito? Mais um consumidor. Em nenhum caso você abre o código do que já existe.
+E a extensibilidade é concreta, não teórica. Quer avisar no Slack? Assina o tópico. Quer um painel de marcos? Assina o tópico. Quer contar cliques de outro jeito? Mais um consumidor. Em nenhum caso você abre o código do que já existe.
 
-No fim, é isso que serverless e event-driven entregam juntos: **peças pequenas
-que não se conhecem, que escalam sozinhas e que você só paga quando acontecem.**
+No fim, é isso que serverless e event-driven entregam juntos: **peças pequenas que não se conhecem, que escalam sozinhas e que você só paga quando acontecem.**
 
 ## Limpeza
 
@@ -234,8 +188,7 @@ Para não deixar nada cobrando, remova na ordem inversa da construção:
 8. S3 → esvazie o bucket e depois apague
 ```
 
-O pipe primeiro, para ele não reagir às deleções seguintes. O bucket por último,
-porque o S3 exige que esteja vazio.
+O pipe primeiro, para ele não reagir às deleções seguintes. O bucket por último, porque o S3 exige que esteja vazio.
 
 ## O que você construiu
 
@@ -255,9 +208,6 @@ Nove serviços, uma aplicação funcionando, zero servidores:
 | SNS | fan-out |
 | Parameter Store | segredo fora do código |
 
-E um incômodo que ficou pelo caminho: **todo esse trabalho foi feito a cliques**.
-Nada está versionado, nada é reproduzível com segurança, e refazer numa segunda
-conta significa repetir tudo torcendo para não esquecer um passo.
+E um incômodo que ficou pelo caminho: **todo esse trabalho foi feito a cliques**. Nada está versionado, nada é reproduzível com segurança, e refazer numa segunda conta significa repetir tudo torcendo para não esquecer um passo.
 
-É esse problema que a infraestrutura como código resolve, mas isso já é outra
-série.
+É esse problema que a infraestrutura como código resolve, mas isso já é outra série.
