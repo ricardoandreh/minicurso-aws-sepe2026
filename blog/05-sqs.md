@@ -79,6 +79,54 @@ Copie a **URL** da fila.
 
 > 📸 **Print:** a fila criada, com a URL visível.
 
+#### Os campos que você deixou no padrão
+
+Vale parar trinta segundos neles, porque três reaparecem no resto do artigo e um
+deles é o que vai te confundir no passo 7.
+
+| Campo | Padrão | O que controla |
+|---|---|---|
+| **Visibility timeout** | 30 segundos | quanto tempo a mensagem fica invisível depois de alguém recebê-la |
+| **Message retention period** | 4 dias | quanto tempo ela pode ficar na fila no total, somando todas as tentativas |
+| **Delivery delay** | 0 segundos | quanto tempo uma mensagem nova espera antes de ficar disponível pela primeira vez |
+| **Receive message wait time** | 0 segundos | quanto tempo um consumidor espera por mensagem antes de voltar de mãos vazias |
+
+Juntos eles descrevem o ciclo de vida de uma mensagem:
+
+```
+                    delivery delay              visibility timeout
+                          │                             │
+   publicada ─────────────┴──▶ delayed ──▶ available ──▶ in flight ──▶ apagada
+                                                ▲             │       (consumidor
+                                                │             │        terminou)
+                                                └─────────────┘
+                                          voltou: o consumidor falhou
+                                          ou demorou mais que o timeout
+
+   message retention period: o relógio de fora. Corre o tempo todo,
+   não reinicia a cada tentativa, e no fim dele a mensagem é descartada.
+```
+
+Três consequências que vão aparecer:
+
+**O visibility timeout precisa ser maior que o timeout de quem consome.** Senão
+a mensagem volta para `available` com a invocação anterior ainda rodando, e duas
+execuções processam o mesmo clique. Esse é o campo que você mais vai ajustar na
+vida real.
+
+**O retention period é o único limite de uma mensagem que falha sempre**, quando
+não há Dead Letter Queue. Ela volta a cada 30 segundos durante 4 dias, que dão
+11.520 tentativas, todas com o mesmo erro. O passo 7 mostra isso acontecendo.
+
+**O delivery delay é zero aqui de propósito.** Ele serve para quando o consumidor
+precisa que algo do produtor assente antes, e no nosso caso a escrita no DynamoDB
+já aconteceu quando a mensagem é publicada. Mas é esse campo que alimenta a
+terceira coluna da fila, *Messages delayed*, que você vai ver zerada o tempo todo.
+
+Tem ainda a **Dead-letter queue** nessa mesma tela, desligada. Fica assim de
+propósito: o artigo 11 mostra o que acontece sem ela, e aí a decisão de ligar
+faz sentido.
+
 ### 2. Apontar a função HTTP para a fila
 
 Na `url-shortener-api` → **Configuration → Environment variables → Edit**:
@@ -211,9 +259,10 @@ para ver a mensagem. Você não vai conseguir, e a fila vai mostrar
 
 O motivo é uma corrida que você sempre perde. A Lambda recebe a mensagem, falha
 em milissegundos, e a mensagem fica invisível pelos 30 segundos do visibility
-timeout. Quando ela reaparece, o poller da Lambda está esperando em long
-polling e a pega de novo, antes de qualquer clique seu. Ela passa a vida
-inteira *in flight*.
+timeout do passo 1. Quando ela reaparece, o poller do gatilho já está lá,
+esperando, porque ele nunca parou de perguntar. O seu Poll só começa a perguntar
+depois que você clica. Resultado: a mensagem passa quase a vida inteira
+*in flight* e a janela em que ela fica *available* é do poller.
 
 Para conseguir olhar, tire a Lambda da disputa: **desabilite o gatilho, espere
 o visibility timeout expirar** (30 segundos) e só então dê Poll. A mensagem
