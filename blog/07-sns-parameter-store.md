@@ -66,6 +66,56 @@ Console → **Systems Manager** → **Parameter Store** → **Create parameter**
 > 📸 **Print:** o parâmetro criado na lista, mostrando o tipo SecureString, sem
 > revelar o valor.
 
+#### Pelo terminal, se preferir
+
+Dá na mesma, e é o que você vai usar quando precisar trocar o webhook correndo:
+
+```bash
+aws ssm put-parameter --profile labs \
+  --name /labs/discord-webhook \
+  --type SecureString \
+  --value "https://discord.com/api/webhooks/SEU/WEBHOOK"
+```
+
+Ele responde com o número da versão, `1`.
+
+Três coisas que valem saber antes de precisar delas:
+
+**Rodar de novo com o mesmo nome dá erro**, `ParameterAlreadyExists`. Para
+trocar o valor é preciso ser explícito:
+
+```bash
+aws ssm put-parameter --profile labs \
+  --name /labs/discord-webhook \
+  --type SecureString --overwrite \
+  --value "https://discord.com/api/webhooks/OUTRO/WEBHOOK"
+```
+
+Agora ele responde `2`. **Cada escrita cria uma versão**, e as anteriores
+continuam lá, consultáveis. É uma diferença boa em relação a variável de
+ambiente, que você sobrescreve e perde.
+
+**Ler de volta sem decriptar devolve o texto cifrado**, não o valor:
+
+```bash
+$ aws ssm get-parameter --profile labs --name /labs/discord-webhook \
+    --query 'Parameter.Value' --output text
+AQICAHj1DPX3A0DpBLv2r4GvMos3ulzlxvDm476sG34msnzWXAFO3sLSlvzK7mDNbx6B2OAs...
+```
+
+Com `--with-decryption` vem a URL. É exatamente por isso que o código da função
+passa `WithDecryption=True` no `get_parameter`: sem isso ele receberia esse
+blob e tentaria fazer um POST para ele.
+
+```bash
+aws ssm get-parameter --profile labs --name /labs/discord-webhook \
+  --with-decryption --query 'Parameter.Value' --output text
+```
+
+E repare no que essa separação te dá: **ler o parâmetro e ler o segredo são
+duas permissões diferentes.** Quem tem `ssm:GetParameter` mas não tem acesso à
+chave KMS consegue listar e ver que o parâmetro existe, sem conseguir abrir.
+
 ### 2. Criar a função de aviso
 
 **Lambda → Create function**:
