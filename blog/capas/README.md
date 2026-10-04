@@ -1,29 +1,27 @@
 # Capas da série
 
-Uma por artigo, mais uma do índice, em tema claro e escuro. 1200×340.
+Uma por artigo, mais uma do índice. 1200×340, tema claro.
 
-Geradas por [`gerar.py`](gerar.py), não editadas à mão:
+- **`.webp`** é o que se publica. Lossless, 3,4 a 5 KB cada.
+- **`.svg`** é a fonte da verdade, versiona bem e serve para editar.
 
-```bash
-python3 blog/capas/gerar.py            # claro
-python3 blog/capas/gerar.py --escuro   # escuro
-```
-
-O desenho reusa a identidade da aplicação que a turma constrói: a rampa do vermelho ao verde do IFC, a mesma do `card::before` do `index.html`, só que em blocos discretos de 24px em vez de gradiente contínuo. Tudo com `shape-rendering="crispEdges"`, sem anti-aliasing.
-
-Para mudar título, rodapé ou tema, mexa no dicionário `CAPAS` e nos `TEMAS` no topo do gerador. O tamanho do título se ajusta sozinho para caber, com 8% de folga, porque o cálculo de largura é estimativa e a fonte real da máquina que rasterizar pode ser mais larga.
-
-## Converter para PNG
-
-Plataforma de blog costuma querer PNG ou JPG. Nenhuma ferramenta de conversão está no projeto, então use uma destas:
+## Gerar
 
 ```bash
-# librsvg
-sudo apt install librsvg2-bin
-for f in blog/capas/capa-*.svg; do rsvg-convert -w 1200 "$f" -o "${f%.svg}.png"; done
-
-# ImageMagick
-for f in blog/capas/capa-*.svg; do magick -density 150 "$f" "${f%.svg}.png"; done
+python3 blog/capas/gerar.py          # só os SVG
+<venv>/bin/python blog/capas/gerar.py   # SVG e WebP, se houver Pillow
 ```
 
-Sem nenhuma delas instalada, abrir o SVG no navegador e salvar a imagem também resolve.
+O WebP sai `lossless=True`: são cores chapadas e bordas duras, e o modo com perda só introduziria sujeira nas bordas sem economizar nada que valha.
+
+Não são desenhadas à mão. Para mudar título, rodapé ou estilo, mexa no dicionário `CAPAS` e em `TEMA` no topo do gerador, e as quinze saem de novo.
+
+## Desenho
+
+A rampa do vermelho ao verde do IFC, a mesma do `card::before` do `index.html`, em blocos discretos de 24px no lugar do gradiente contínuo. Grade de 40px bem fraca no fundo, tipografia monoespaçada em caixa baixa, cursor em bloco verde fechando o título.
+
+## A fonte
+
+O gerador procura, nesta ordem: Cascadia Mono, Consolas e DejaVu Sans Mono. Num WSL as fontes do Windows estão em `/mnt/c/Windows/Fonts`, que é de onde o Consolas sai. Numa máquina sem nenhuma delas, o gerador avisa em vez de produzir uma capa com fonte errada.
+
+O tamanho do título se ajusta sozinho para caber em 92% da largura útil, medido com a métrica real da fonte, não estimado.
