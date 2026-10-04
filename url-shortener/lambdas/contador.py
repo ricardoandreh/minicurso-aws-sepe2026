@@ -18,7 +18,20 @@ def lambda_handler(event, context):
     # "Records" é sempre uma lista, mesmo com uma mensagem só: se vários
     # cliques chegarem juntos, o SQS agrupa tudo numa invocação.
     for registro in event["Records"]:
-        short_id = json.loads(registro["body"])["shortId"]
+        # Mensagem malformada nunca vai dar certo numa retentativa, então
+        # descartar é melhor que levantar. Sem DLQ, uma mensagem envenenada
+        # volta a cada visibility timeout até a retenção expirar: com os
+        # padrões do console, 30s e 4 dias, são 11.520 invocações com o mesmo
+        # erro. E numa invocação em lote ela ainda derruba junto os cliques
+        # bons que vieram com ela, que seriam reprocessados e contados de novo.
+        try:
+            corpo = json.loads(registro["body"])
+            short_id = corpo["shortId"]
+            if not isinstance(short_id, str) or not short_id:
+                raise ValueError("shortId ausente ou vazio")
+        except (ValueError, KeyError, TypeError) as erro:
+            print(f"mensagem descartada: {erro} | corpo={registro['body'][:200]!r}")
+            continue
 
         # ADD é o contador atômico do DynamoDB: duas Lambdas incrementando ao
         # mesmo tempo não perdem contagem, e funciona mesmo se o atributo

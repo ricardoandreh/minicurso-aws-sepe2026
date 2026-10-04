@@ -195,8 +195,7 @@ A conta é real, mas restrita. O que mais afeta um minicurso:
 |---|---|
 | `iam:CreateRole`, `iam:AttachRolePolicy` | ao criar uma Lambda, escolha **Use an existing role → LabRole** |
 | CloudFront | o site fica em S3 website hosting, HTTP puro |
-| Bedrock | se o minicurso usar AI, vai ser por provider externo |
-| Pulumi gerenciar bucket S3 | uma SCP nega `s3:GetBucketObjectLockConfiguration`, então IaC não cria nem referencia bucket (o CLI cria normalmente) |
+| Bedrock | se quiser usar AI, vai ser por provider externo |
 
 A `LabRole` existe justamente para compensar a primeira linha: ela já tem
 permissão para DynamoDB, SQS, SNS, S3, SSM e o resto do que a aula usa. Em
