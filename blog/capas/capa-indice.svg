@@ -8,7 +8,11 @@
   <rect x="257" y="307" width="42" height="76"
         fill="#277233"/>
   <text x="90" y="600" font-family="Cascadia Mono,JetBrains Mono,Consolas,ui-monospace,monospace" font-size="22"
+<<<<<<< HEAD
         fill="#616161">14 artigos, do console ao codigo</text>
+=======
+        fill="#616161">14 artigos, do console ao código</text>
+>>>>>>> 4379188 (Recria capas com acentuação correta)
   <text x="1110" y="600" font-family="Cascadia Mono,JetBrains Mono,Consolas,ui-monospace,monospace" font-size="22"
         fill="#616161" text-anchor="end">minicurso_ifc · 2026</text>
 </svg>
