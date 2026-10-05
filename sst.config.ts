@@ -31,28 +31,14 @@ export default $config({
     const runtime = "python3.13";
     const fnDir = "functions/src/functions";
 
-    // Learner Lab bloqueia GetBucketObjectLockConfiguration, então usar Pulumi direto
-    // sem sst.aws.Bucket que tenta verificar. skipAwait evita aguardar que ativa a verificação.
-    const bucketFrontend = new aws.s3.Bucket("Frontend", {
-      acl: "public-read",
-      forceDestroy: true,
-    }, { skipAwait: true });
-
-    const websiteConfig = new aws.s3.BucketWebsiteConfiguration("FrontendWebsite", {
-      bucket: bucketFrontend.id,
-      indexDocument: { suffix: "index.html" },
-      errorDocument: { key: "index.html" },
-    }, { dependsOn: [bucketFrontend] });
-
-    const bucketPublicAccess = new aws.s3.BucketPublicAccessBlock("FrontendPublicAccess", {
-      bucket: bucketFrontend.id,
-      blockPublicAcls: false,
-      blockPublicPolicy: false,
-      ignorePublicAcls: false,
-      restrictPublicBuckets: false,
-    }, { dependsOn: [bucketFrontend] });
-
-    const siteUrl = $interpolate`http://${bucketFrontend.id}.s3-website-us-east-1.amazonaws.com`;
+    const bucketSite = process.env.BUCKET_SITE;
+    if (!bucketSite) {
+      throw new Error(
+        "Informe o bucket do site, criado no hands-on da Parte 1:\n" +
+          "  BUCKET_SITE=seu-bucket npx sst deploy --stage lab",
+      );
+    }
+    const siteUrl = `http://${bucketSite}.s3-website-us-east-1.amazonaws.com`;
 
     // O stream e o que permite reagir a mudancas na tabela sem que quem
     // escreveu precise avisar ninguem. `new-and-old-images` e obrigatorio
@@ -160,6 +146,6 @@ export default $config({
       },
     });
 
-    return { site: siteUrl, api: api.url, bucket: bucketFrontend.id };
+    return { site: siteUrl, api: api.url, bucket: bucketSite };
   },
 });
