@@ -118,7 +118,7 @@ export default $config({
       timeout: "10 seconds",
       link: [webhook],
       environment: {
-        WEBHOOK_PARAM: webhook.name,
+        WEBHOOK_URL: webhook.value,
       },
     });
 

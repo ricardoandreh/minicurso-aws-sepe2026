@@ -5,32 +5,17 @@ Não decide nada: quem decidiu foi o filtro do EventBridge Pipe, que só deixa
 passar o registro em que `clicks` cruzou de 9 para 10. Esta função notifica,
 e é só isso que ela faz.
 
-Variável de ambiente: WEBHOOK_PARAM, nome ou ARN do parâmetro
-    (ex.: /labs/discord-webhook, ou o ARN completo; get_parameter aceita os dois)
-Permissão necessária na role: ssm:GetParameter (e kms:Decrypt, para SecureString)
+Variável de ambiente: WEBHOOK_URL (injetada pelo SST)
 """
 import json
 import os
 import urllib.request
 
-import boto3
-
-ssm = boto3.client("ssm")
-PARAMETRO = os.environ["WEBHOOK_PARAM"]
-
-# Cache entre invocações: o módulo só é carregado no cold start, então a
-# consulta ao Parameter Store acontece uma vez por ambiente de execução, não
-# uma vez por mensagem. O Parameter Store tem limite de requisições por
-# segundo, e buscar o mesmo valor a cada invocação é a forma mais comum de
-# esbarrar nele sem perceber.
-_webhook = None
+WEBHOOK_URL = os.environ["WEBHOOK_URL"]
 
 
 def _webhook_url():
-    global _webhook
-    if _webhook is None:
-        _webhook = ssm.get_parameter(Name=PARAMETRO, WithDecryption=True)["Parameter"]["Value"]
-    return _webhook
+    return WEBHOOK_URL
 
 
 def _postar(mensagem):
