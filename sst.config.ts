@@ -1,15 +1,19 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
 /**
- * Passo 5: reagir sem acoplar.
+ * Encurtador de URL: projeto completo.
  *
- * O encurtador completo. Entram o stream da tabela, um EventBridge Pipe com
- * filtro, um topico SNS e a funcao que posta no Discord. Ninguem no caminho da
- * escrita sabe que existe uma notificacao, e e exatamente esse o ponto.
+ * Parte 1 (console): tabela, funcao, API, fila.
+ * Parte 2 (codigo): mesmo projeto declarado em SST v4.
+ *
+ * O stream, o pipe com filtro, o topico SNS e a funcao que posta no Discord
+ * reagem a mudancas na tabela sem que quem escreve saiba que existem.
  *
  * Deploy:
+ *   npm install
+ *   eval "$(aws configure export-credentials --profile labs --format env)"
  *   npx sst secret set DiscordWebhook "https://discord.com/api/webhooks/..." --stage lab
- *   BUCKET_SITE=seu-bucket npx sst deploy --stage lab
+ *   npx sst deploy --stage lab
  */
 export default $config({
   app(input) {
@@ -27,14 +31,15 @@ export default $config({
     const runtime = "python3.13";
     const fnDir = "functions/src/functions";
 
-    const bucketSite = process.env.BUCKET_SITE;
-    if (!bucketSite) {
-      throw new Error(
-        "Informe o bucket do site, criado no hands-on da Parte 1:\n" +
-          "  BUCKET_SITE=seu-bucket npx sst deploy --stage lab",
-      );
-    }
-    const siteUrl = `http://${bucketSite}.s3-website-us-east-1.amazonaws.com`;
+    const bucketFrontend = new sst.aws.Bucket("Frontend", { access: "public", enforceHttps: false });
+
+    new aws.s3.BucketWebsiteConfiguration("FrontendWebsite", {
+      bucket: bucketFrontend.name,
+      indexDocument: { suffix: "index.html" },
+      errorDocument: { key: "index.html" },
+    });
+
+    const siteUrl = $interpolate`http://${bucketFrontend.name}.s3-website-us-east-1.amazonaws.com`;
 
     // O stream e o que permite reagir a mudancas na tabela sem que quem
     // escreveu precise avisar ninguem. `new-and-old-images` e obrigatorio
@@ -142,6 +147,6 @@ export default $config({
       },
     });
 
-    return { site: siteUrl, api: api.url, bucket: bucketSite };
+    return { site: siteUrl, api: api.url, bucket: bucketFrontend.name };
   },
 });
