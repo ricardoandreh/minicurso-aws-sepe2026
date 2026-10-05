@@ -94,11 +94,11 @@ Repare na diferença de conceito:
 
 Com dois itens parece igual. Com dois milhões, não é.
 
-## O que deu errado (e por quê)
+## Cuidados para depois (quando o código chegar)
 
-**"Attribute name is a reserved word".** Algumas palavras são reservadas em expressões do DynamoDB, entre elas `status`, `name`, `size` e `count`. Você ainda pode usá-las como nome de atributo, mas precisa de um apelido na hora de escrever a expressão. Aparece mais tarde, quando o código for atualizar o contador.
+**Palavras reservadas em expressões DynamoDB.** Você conseguiu criar um item com `status` sem problemas. Mas quando o código tiver que *atualizar* esse atributo — por exemplo, com `SET #s = :val` — o DynamoDB vai reclamar que `status` é reservado. A solução: usar um apelido como `#s` (você viu acima). Mesma coisa com `name`, `size`, `count`. Criar o atributo é fácil; usar em expressões exige cuidado.
 
-**O número volta diferente do que você gravou.** O DynamoDB tem um tipo numérico só, de precisão alta. Nas bibliotecas isso vira `Decimal`, não `int`, e `Decimal` não é serializável em JSON. É uma das causas mais comuns de erro 500 em API que lê DynamoDB, e vamos esbarrar nela no artigo 3.
+**Números serializam estranho em JSON.** O DynamoDB armazena números com precisão alta, e quando você lê pela API boto3 vira um `Decimal`, não um simples `int`. Isso não é JSON-serializável de cara, e é uma das causas mais comuns de erro 500 quando você tenta retornar os dados pela API. No artigo 3 vamos lidar com isso.
 
 ## Como isso sustenta serverless
 
