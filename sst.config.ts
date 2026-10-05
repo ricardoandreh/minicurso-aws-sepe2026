@@ -76,6 +76,10 @@ export default $config({
       memory: "256 MB",
       timeout: "10 seconds",
       link: [tabela, fila],
+      environment: {
+        TABELA_NOME: tabela.name,
+        FILA_URL: fila.url,
+      },
     });
 
     // A precedencia e do API Gateway, nao nossa: `GET /urls` vence
@@ -95,6 +99,9 @@ export default $config({
       memory: "128 MB",
       timeout: "15 seconds",
       link: [tabela],
+      environment: {
+        TABELA_NOME: tabela.name,
+      },
     });
 
     // O equivalente do Parameter Store aqui. Setado uma vez por stage, via
@@ -110,6 +117,9 @@ export default $config({
       memory: "128 MB",
       timeout: "10 seconds",
       link: [webhook],
+      environment: {
+        WEBHOOK_PARAM: webhook.name,
+      },
     });
 
     // O SST v4 tem `sst.aws.Bus`, que e o barramento do EventBridge, mas nao
