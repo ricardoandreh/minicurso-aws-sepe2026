@@ -94,12 +94,6 @@ Repare na diferença de conceito:
 
 Com dois itens parece igual. Com dois milhões, não é.
 
-## Cuidados para depois (quando o código chegar)
-
-**Palavras reservadas em expressões DynamoDB.** Você conseguiu criar um item com `status` sem problemas. Mas quando o código tiver que *atualizar* esse atributo — por exemplo, com `SET #s = :val` — o DynamoDB vai reclamar que `status` é reservado. A solução: usar um apelido como `#s` (você viu acima). Mesma coisa com `name`, `size`, `count`. Criar o atributo é fácil; usar em expressões exige cuidado.
-
-**Números serializam estranho em JSON.** O DynamoDB armazena números com precisão alta, e quando você lê pela API boto3 vira um `Decimal`, não um simples `int`. Isso não é JSON-serializável de cara, e é uma das causas mais comuns de erro 500 quando você tenta retornar os dados pela API. No artigo 3 vamos lidar com isso.
-
 ## Como isso sustenta serverless
 
 Repare no que você **não** fez: não escolheu tamanho de instância, não configurou réplica, não definiu quanto disco reservar, não criou usuário de banco. A tabela está pronta para uma requisição por dia ou um milhão por segundo, e você não precisa decidir qual antes.
